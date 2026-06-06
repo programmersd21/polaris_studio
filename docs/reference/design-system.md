@@ -1,6 +1,6 @@
 # Design System
 
-Polaris Studio's visual design is intentional, consistent, and detail-oriented. This page documents every design decision — typography, colour, spacing, motion, and visual hierarchy — so you understand *why* the UI looks the way it does.
+Polaris Studio's visual design is intentional, consistent, and detail-oriented. This page documents every design decision - typography, colour, spacing, motion, and visual hierarchy - so you understand *why* the UI looks the way it does.
 
 ---
 
@@ -29,7 +29,7 @@ Four typefaces, each with a specific role:
 - **Usage:** The "Polaris Studio" wordmark, canvas empty state ("Build your workflow."), AI panel header ("AI Assistant"), Properties panel header ("Properties"), dialog titles.
 - **Weight:** Regular (400), with italic for canvas sub-text.
 - **Size:** 24 pt for the wordmark, 34 pt for canvas empty-state title, 15 pt italic for canvas subtitle, 16–18 pt for dialog titles.
-- **Why:** Serif brings warmth, elegance, and a premium feel. Used sparingly — only for hero moments — to create a clear visual hierarchy. Never used for body text or interactive elements.
+- **Why:** Serif brings warmth, elegance, and a premium feel. Used sparingly - only for hero moments - to create a clear visual hierarchy. Never used for body text or interactive elements.
 
 ### JetBrains Mono (code & data)
 
@@ -163,23 +163,23 @@ Each node category has a distinct header colour:
 
 The UI is organised so your eye flows naturally:
 
-1. **Canvas** — the dominant workspace. Everything else supports it.
-2. **Wordmark** ("Polaris Studio") — top-left, Instrument Serif, sets the brand tone.
-3. **Toolbar & menus** — quick actions, always accessible.
-4. **Node Palette** (left) — the toolbox. You come here to add nodes.
-5. **Properties Panel** (right) — context-sensitive. Shows details for whatever is selected.
-6. **AI Panel** (right, bottom) — chat interface. Slides in when needed.
-7. **Spreadsheet** (bottom) — the data view. Resizeable pane.
-8. **Status bar** (bottom) — persistent status info, execution time, row count.
+1. **Canvas** - the dominant workspace. Everything else supports it.
+2. **Wordmark** ("Polaris Studio") - top-left, Instrument Serif, sets the brand tone.
+3. **Toolbar & menus** - quick actions, always accessible.
+4. **Node Palette** (left) - the toolbox. You come here to add nodes.
+5. **Properties Panel** (right) - context-sensitive. Shows details for whatever is selected.
+6. **AI Panel** (right, bottom) - chat interface. Slides in when needed.
+7. **Spreadsheet** (bottom) - the data view. Resizeable pane.
+8. **Status bar** (bottom) - persistent status info, execution time, row count.
 
 ### Node visual hierarchy (within a single node)
 
-1. **Category colour strip** — top. Instantly tells you what kind of node it is.
-2. **Category glyph** — single letter in a rounded square.
-3. **Node title** — bold, Outfit. The display name.
-4. **Node ID** — smaller, monospace. Helps when debugging.
-5. **Ports** — labelled circles on left (input) and right (output).
-6. **Body** — parameter previews or port labels.
+1. **Category colour strip** - top. Instantly tells you what kind of node it is.
+2. **Category glyph** - single letter in a rounded square.
+3. **Node title** - bold, Outfit. The display name.
+4. **Node ID** - smaller, monospace. Helps when debugging.
+5. **Ports** - labelled circles on left (input) and right (output).
+6. **Body** - parameter previews or port labels.
 
 ---
 

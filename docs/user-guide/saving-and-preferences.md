@@ -4,14 +4,14 @@ This page covers everything about saving your work, sharing pipelines with other
 
 ---
 
-## The `.polaris` file — your pipeline in a box
+## The `.polaris` file - your pipeline in a box
 
 A Polaris pipeline is saved as a single `.polaris` file. Think of it as a **zip file** that bundles two things:
 
-1. **The pipeline structure** — all your nodes, connections, tabs, canvas zoom and scroll position.
-2. **The source data files** — every CSV, Excel, Parquet, or JSON file you imported is **embedded inside** the `.polaris` zip.
+1. **The pipeline structure** - all your nodes, connections, tabs, canvas zoom and scroll position.
+2. **The source data files** - every CSV, Excel, Parquet, or JSON file you imported is **embedded inside** the `.polaris` zip.
 
-This means a `.polaris` file is **self-contained**. You can email it, commit it to Git, or put it on a USB drive — it will work on any machine without broken paths.
+This means a `.polaris` file is **self-contained**. You can email it, commit it to Git, or put it on a USB drive - it will work on any machine without broken paths.
 
 > **Zip fact:** `.polaris` is a standard ZIP archive. You can open it with any zip tool (7-Zip, WinRAR, `unzip`). Inside you'll find:
 >
@@ -38,25 +38,25 @@ This means a `.polaris` file is **self-contained**. You can email it, commit it 
 1. Polaris opens the zip and extracts `workflow.json` plus all data files to a temporary folder.
 2. Every node and edge is reconstructed exactly as you left them.
 3. The canvas view (scroll, zoom, selection) is restored.
-4. All source nodes (`csv_reader`, `xlsx_reader`, etc.) now point to the extracted temp files — no broken paths.
+4. All source nodes (`csv_reader`, `xlsx_reader`, etc.) now point to the extracted temp files - no broken paths.
 5. Every node is marked dirty and the **entire pipeline is automatically re-executed** (you see the spreadsheet fill with data within seconds).
 6. When you close Polaris, the temp folder is cleaned up.
 
 ### Save
 
-- **Ctrl+S** — save the current workflow.
-- **File → Save** — same.
+- **Ctrl+S** - save the current workflow.
+- **File → Save** - same.
 - If the file hasn't been saved yet, Polaris prompts for a location. The extension `.polaris` is added automatically.
 
 ### Save As
 
-- **Ctrl+Shift+S** — save under a new name.
-- **File → Save As** — same. Creates a brand-new `.polaris` zip with freshly embedded data files.
+- **Ctrl+Shift+S** - save under a new name.
+- **File → Save As** - same. Creates a brand-new `.polaris` zip with freshly embedded data files.
 
 ### Open
 
-- **Ctrl+O** — open a `.polaris` file.
-- **File → Open** — same.
+- **Ctrl+O** - open a `.polaris` file.
+- **File → Open** - same.
 
 Polaris can open both the new zip-based `.polaris` files and the legacy JSON-based `.polaris` files (from older versions). Backward compatible.
 
@@ -64,9 +64,9 @@ Polaris can open both the new zip-based `.polaris` files and the legacy JSON-bas
 
 Since everything is self-contained, sharing is easy:
 
-- **Email it** — `.polaris` files are typically a few MB (your data + the pipeline JSON).
-- **Commit it to Git** — the zip compresses well. Your team can clone and open immediately.
-- **Demo it** — put it on a flash drive, open on any machine with Polaris installed.
+- **Email it** - `.polaris` files are typically a few MB (your data + the pipeline JSON).
+- **Commit it to Git** - the zip compresses well. Your team can clone and open immediately.
+- **Demo it** - put it on a flash drive, open on any machine with Polaris installed.
 
 > **Note:** If your source data is extremely large (hundreds of MB), the `.polaris` file will be large too. Consider using a Sample node before importing to keep the pipeline portable.
 
@@ -83,7 +83,7 @@ Polaris can import data in four formats. Each import creates a **source node** o
 1. A file picker opens.
 2. Select your data file.
 3. A reader node (e.g., `csv_reader`) is created on the canvas at a default position.
-4. The node is selected and executed immediately — you see the data in the spreadsheet.
+4. The node is selected and executed immediately - you see the data in the spreadsheet.
 
 The file path is stored in the node's parameters. When you save (Ctrl+S), Polaris **copies the file into the `.polaris` zip** automatically. The original path isn't needed after save.
 
@@ -110,11 +110,11 @@ Export the output of any node to a file:
 1. Select a node on the canvas.
 2. Click **File → Export as CSV** (or Parquet, XLSX, JSON).
 3. Choose where to save the exported file.
-4. An export node is created temporarily, executed, then removed — the file is written to disk.
+4. An export node is created temporarily, executed, then removed - the file is written to disk.
 
 ### Via Export nodes
 
-You can also add explicit **Export** nodes from the Node Palette (Output category). These remain in your pipeline and are executed every time the pipeline runs — useful for generating reports on a schedule.
+You can also add explicit **Export** nodes from the Node Palette (Output category). These remain in your pipeline and are executed every time the pipeline runs - useful for generating reports on a schedule.
 
 ---
 
@@ -191,7 +191,7 @@ Open settings with **Ctrl+,** or **Edit → Settings**. Settings are saved autom
 | Log level | Warning | Minimum log level printed to the terminal. Options: Debug, Info, Warning, Error. |
 | OpenGL renderer | Auto | Rendering backend for the canvas. Change to Software if you experience graphical glitches. |
 | Temp directory | System default | Where extracted data files go when opening a `.polaris` file. Cleared on exit. |
-| Reset all settings | — | Restore every setting to its factory default. |
+| Reset all settings | - | Restore every setting to its factory default. |
 
 ---
 
