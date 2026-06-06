@@ -11,7 +11,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from polaris_studio.core.graph import WorkflowGraph
 
-
 READER_NODE_TYPES = frozenset(
     {
         "csv_reader",

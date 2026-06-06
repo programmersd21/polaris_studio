@@ -14,19 +14,11 @@ from __future__ import annotations
 import json
 from typing import Optional
 
-from PySide6.QtCore import (
-    QPropertyAnimation,
-    QSequentialAnimationGroup,
-    Qt,
-    QTimer,
-    QVariantAnimation,
-    Signal,
-)
+from PySide6.QtCore import Qt, QTimer, QVariantAnimation, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
-    QGraphicsOpacityEffect,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -40,13 +32,7 @@ from PySide6.QtWidgets import (
 
 from polaris_studio.agent.command_pipeline import ExecutionReport
 from polaris_studio.agent.schemas import AppCommandBatch, PipelineMutationBatch
-from polaris_studio.ui.motion import (
-    FAST,
-    fade_slide_in,
-    spring,
-    accel_decel,
-    _keep,
-)
+from polaris_studio.ui.motion import _keep, accel_decel, fade_slide_in
 from polaris_studio.ui.theme import (
     PALETTE,
     RADII,
@@ -55,7 +41,6 @@ from polaris_studio.ui.theme import (
     font_mono,
     font_outfit,
 )
-
 
 # ── Animated send button ──────────────────────────────────────────────────────
 
@@ -88,6 +73,7 @@ class _SendButton(QPushButton):
         self.setFixedWidth(80)
         self.setStyleSheet(self._BASE_SS)
         self._loading = False
+        self._BASE_SS_LOADING: str = ""
 
     def set_loading(self, loading: bool) -> None:
         self._loading = loading
@@ -116,21 +102,24 @@ class _SendButton(QPushButton):
     def _animate_opacity_pulse(self) -> None:
         if not self._loading:
             return
-        effect = self.graphicsEffect()
-        if not isinstance(effect, QGraphicsOpacityEffect):
-            effect = QGraphicsOpacityEffect(self)
-            self.setGraphicsEffect(effect)
-        seq = QSequentialAnimationGroup(self)
-        for start, end in [(1.0, 0.4), (0.4, 1.0)]:
-            a = QPropertyAnimation(effect, b"opacity", seq)
-            a.setStartValue(start)
-            a.setEndValue(end)
-            a.setDuration(420)
-            a.setEasingCurve(accel_decel())
-            seq.addAnimation(a)
-        seq.setLoopCount(-1)
-        _keep(self, seq)
-        seq.start()
+        base = self._BASE_SS_LOADING if hasattr(self, "_BASE_SS_LOADING") else ""
+        if not base:
+            self._BASE_SS_LOADING = self.styleSheet()
+            base = self._BASE_SS_LOADING
+
+        self._pulse_state = 0
+
+        def _tick() -> None:
+            if not self._loading:
+                return
+            self._pulse_state ^= 1
+            ss = base + ("\ncolor: rgba(255,255,255,0.4);" if self._pulse_state else "")
+            self.setStyleSheet(ss)
+
+        self._pulse_timer = QTimer(self)
+        self._pulse_timer.timeout.connect(_tick)
+        self._pulse_timer.start(420)
+        _keep(self, self._pulse_timer)
 
     def mousePressEvent(self, event) -> None:
         if not self._loading:
@@ -143,30 +132,12 @@ class _SendButton(QPushButton):
         super().mouseReleaseEvent(event)
 
     def _squeeze(self) -> None:
-        effect = self.graphicsEffect()
-        if not isinstance(effect, QGraphicsOpacityEffect):
-            effect = QGraphicsOpacityEffect(self)
-            self.setGraphicsEffect(effect)
-        anim = QPropertyAnimation(effect, b"opacity", self)
-        anim.setStartValue(1.0)
-        anim.setEndValue(0.75)
-        anim.setDuration(60)
-        anim.setEasingCurve(accel_decel())
-        _keep(self, anim)
-        anim.start()
+        base = self.styleSheet()
+        self.setStyleSheet(base + "\ncolor: rgba(255,255,255,0.7);")
+        QTimer.singleShot(60, lambda: self.setStyleSheet(base))
 
     def _spring_back(self) -> None:
-        effect = self.graphicsEffect()
-        if not isinstance(effect, QGraphicsOpacityEffect):
-            effect = QGraphicsOpacityEffect(self)
-            self.setGraphicsEffect(effect)
-        anim = QPropertyAnimation(effect, b"opacity", self)
-        anim.setStartValue(0.75)
-        anim.setEndValue(1.0)
-        anim.setDuration(FAST)
-        anim.setEasingCurve(spring())
-        _keep(self, anim)
-        anim.start()
+        pass
 
 
 # ── Animated input ────────────────────────────────────────────────────────────
@@ -266,6 +237,10 @@ class MessageBubble(QFrame):
                     border-radius: {RADII.md}px;
                 }}
             """)
+
+    def set_text(self, text: str) -> None:
+        self._text_without_cursor = text
+        self._update_display()
 
     def append_text(self, text: str) -> None:
         if self._text_without_cursor in ("…", "..."):
@@ -463,7 +438,7 @@ class ActionPreviewCard(QFrame):
 
 
 class _CardButton(QPushButton):
-    """Small card button with press opacity feedback."""
+    """Small card button with press feedback via stylesheet."""
 
     def __init__(
         self, label: str, *, accent: bool = False, parent: Optional[QWidget] = None
@@ -471,7 +446,7 @@ class _CardButton(QPushButton):
         super().__init__(label, parent)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         if accent:
-            self.setStyleSheet(f"""
+            self._BASE_SS = f"""
                 QPushButton {{
                     background-color: {PALETTE.accent};
                     color: white;
@@ -484,9 +459,9 @@ class _CardButton(QPushButton):
                 }}
                 QPushButton:hover {{ background-color: {PALETTE.accent_hover}; }}
                 QPushButton:disabled {{ background-color: {PALETTE.border}; color: {PALETTE.text_muted}; }}
-            """)
+            """
         else:
-            self.setStyleSheet(f"""
+            self._BASE_SS = f"""
                 QPushButton {{
                     background-color: transparent;
                     color: {PALETTE.text_secondary};
@@ -499,34 +474,15 @@ class _CardButton(QPushButton):
                 }}
                 QPushButton:hover {{ color: {PALETTE.text_primary}; border-color: {PALETTE.border_strong}; }}
                 QPushButton:disabled {{ color: {PALETTE.text_muted}; }}
-            """)
+            """
+        self.setStyleSheet(self._BASE_SS)
 
     def mousePressEvent(self, event) -> None:
-        effect = self.graphicsEffect()
-        if not isinstance(effect, QGraphicsOpacityEffect):
-            effect = QGraphicsOpacityEffect(self)
-            self.setGraphicsEffect(effect)
-        anim = QPropertyAnimation(effect, b"opacity", self)
-        anim.setStartValue(1.0)
-        anim.setEndValue(0.65)
-        anim.setDuration(55)
-        anim.setEasingCurve(accel_decel())
-        _keep(self, anim)
-        anim.start()
+        self.setStyleSheet(self._BASE_SS + "\ncolor: rgba(255,255,255,0.6);")
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event) -> None:
-        effect = self.graphicsEffect()
-        if not isinstance(effect, QGraphicsOpacityEffect):
-            effect = QGraphicsOpacityEffect(self)
-            self.setGraphicsEffect(effect)
-        anim = QPropertyAnimation(effect, b"opacity", self)
-        anim.setStartValue(0.65)
-        anim.setEndValue(1.0)
-        anim.setDuration(FAST)
-        anim.setEasingCurve(spring())
-        _keep(self, anim)
-        anim.start()
+        QTimer.singleShot(55, lambda: self.setStyleSheet(self._BASE_SS))
         super().mouseReleaseEvent(event)
 
 
@@ -602,11 +558,12 @@ class AIPanel(QWidget):
 
     def on_message(self, text: str) -> None:
         if self._current_bubble is not None and self._current_bubble._role == "assistant":
-            self._current_bubble.append_text(text)
+            self._current_bubble.set_text(text)
+            self._current_bubble.stop_cursor()
         else:
             self._current_bubble = self._add_bubble("assistant", text)
-        if self._current_bubble:
-            self._current_bubble.stop_cursor()
+            if self._current_bubble:
+                self._current_bubble.stop_cursor()
         self._current_bubble = None
 
     def on_action_batch(
@@ -644,7 +601,6 @@ class AIPanel(QWidget):
     def on_done(self) -> None:
         if self._current_bubble:
             self._current_bubble.stop_cursor()
-        self._current_bubble = None
         self._current_action_card = None
         self._send_btn.set_loading(False)
 

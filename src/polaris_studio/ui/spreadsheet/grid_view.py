@@ -6,8 +6,8 @@ from PySide6.QtCore import QItemSelection, QModelIndex, Qt, Signal
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QAbstractItemView, QApplication, QMenu, QTableView, QWidget
 
-from polaris_studio.ui.spreadsheet.grid_model import PolarisGridModel
 from polaris_studio.ui.motion import viewport_flash
+from polaris_studio.ui.spreadsheet.grid_model import PolarisGridModel
 
 
 class SpreadsheetGrid(QTableView):

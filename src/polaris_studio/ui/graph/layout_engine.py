@@ -11,7 +11,6 @@ from typing import Dict, List, Set, Tuple
 
 from polaris_studio.core.graph import WorkflowGraph
 
-
 X_SPACING = 280.0
 Y_SPACING = 110.0
 LAYER_PADDING_Y = 40.0

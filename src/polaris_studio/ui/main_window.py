@@ -5,17 +5,17 @@ import os
 from typing import Any, Dict, List, Optional
 
 import polars as pl
-from PySide6.QtCore import QPoint, QTimer, Qt, QThread, QSettings
+from PySide6.QtCore import QPoint, QSettings, Qt, QThread, QTimer
 from PySide6.QtCore import Signal as ThreadSignal
 from PySide6.QtGui import QAction, QFont, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QButtonGroup,
+    QDialog,
     QDockWidget,
     QFileDialog,
     QInputDialog,
     QLabel,
     QMainWindow,
-    QDialog,
     QMessageBox,
     QSplitter,
     QTabBar,
@@ -893,6 +893,7 @@ class PolarisMainWindow(QMainWindow):
         if nodes:
             self._properties_panel.show_node(nodes[0])
             self._status_bar.set_node_info(nodes[0].node_id, nodes[0].node_type)
+            self._on_node_selected_chart(nodes[0])
         else:
             self._properties_panel.show_node(None)
             self._status_bar.clear_node_info()
@@ -957,6 +958,23 @@ class PolarisMainWindow(QMainWindow):
         )
         self._app_state.add_node(new_node)
         self._status_bar.set_status(f"Duplicated {node_id} → {new_id}")
+
+    def _on_node_selected_chart(self, node: Node) -> None:
+        CHART_TYPES = {
+            "bar_chart",
+            "line_chart",
+            "scatter_chart",
+            "histogram",
+            "box_chart",
+            "heatmap",
+        }
+        if node.node_type in CHART_TYPES:
+            self._chart_panel.set_chart_type(node.node_type)
+            self._chart_panel.set_params(node.params)
+            df = self._app_state._engine.get_cached(node.node_id)  # type: ignore[attr-defined]
+            if df is not None:
+                self._chart_panel.update_data(df)
+            self._chart_panel_dock.show()
 
     def _on_canvas_selection_changed(self, node_ids: List[str]) -> None:
         if node_ids:
@@ -1098,7 +1116,22 @@ class PolarisMainWindow(QMainWindow):
         if isinstance(data, pl.DataFrame):
             self._grid_model.update_dataframe(data)
             self._status_bar.set_row_count(len(data))
-            self._chart_panel.update_data(data)
+            CHART_TYPES = {
+                "bar_chart",
+                "line_chart",
+                "scatter_chart",
+                "histogram",
+                "box_chart",
+                "heatmap",
+            }
+            node = self._workspace.active_graph.get_node(node_id)
+            if node is not None and node.node_type in CHART_TYPES:
+                self._chart_panel.set_chart_type(node.node_type)
+                self._chart_panel.set_params(node.params)
+                self._chart_panel.update_data(data)
+                self._chart_panel_dock.show()
+            else:
+                self._chart_panel.update_data(data)
         elif isinstance(data, str) and str(node_id).startswith("preview:"):
             try:
                 import json

@@ -18,14 +18,9 @@ from polaris_studio.agent.command_pipeline import (
     ExecutionReport,
     PipelineResult,
 )
-from polaris_studio.agent.schemas import (
-    AppCommandBatch,
-    ChatEvent,
-    PipelineMutationBatch,
-)
+from polaris_studio.agent.schemas import AppCommandBatch, ChatEvent, PipelineMutationBatch
 from polaris_studio.core.graph import WorkflowGraph
 from polaris_studio.core.node_registry import NODE_REGISTRY
-
 
 logger = logging.getLogger(__name__)
 

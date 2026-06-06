@@ -131,12 +131,12 @@ class Engine:
             "cross_join": self._exec_cross_join,
             "anti_join": self._exec_anti_join,
             "sort": self._exec_sort,
-            "bar_chart": self._exec_noop,
-            "line_chart": self._exec_noop,
-            "scatter_chart": self._exec_noop,
-            "histogram": self._exec_noop,
-            "box_chart": self._exec_noop,
-            "heatmap": self._exec_noop,
+            "bar_chart": self._exec_bar_chart,
+            "line_chart": self._exec_line_chart,
+            "scatter_chart": self._exec_scatter_chart,
+            "histogram": self._exec_histogram,
+            "box_chart": self._exec_box_chart,
+            "heatmap": self._exec_heatmap,
             "table_output": self._exec_noop,
             "export_csv": self._exec_noop,
             "export_parquet": self._exec_noop,
@@ -499,6 +499,64 @@ class Engine:
         asc = node.params.get("ascending", True)
         nulls_last = node.params.get("nulls_last", True)
         return df.sort(cols, descending=not asc, nulls_last=nulls_last)
+
+    def _exec_bar_chart(self, graph: WorkflowGraph, node: Node) -> pl.DataFrame:
+        df = self._get_input_df(graph, node)
+        x_col = node.params.get("x_column", "")
+        y_col = node.params.get("y_column", "")
+        if x_col and x_col not in df.columns:
+            raise ExecutionError(f"Bar chart: column '{x_col}' not found")
+        if y_col and y_col not in df.columns:
+            raise ExecutionError(f"Bar chart: column '{y_col}' not found")
+        return df
+
+    def _exec_line_chart(self, graph: WorkflowGraph, node: Node) -> pl.DataFrame:
+        df = self._get_input_df(graph, node)
+        x_col = node.params.get("x_column", "")
+        y_col = node.params.get("y_column", "")
+        if x_col and x_col not in df.columns:
+            raise ExecutionError(f"Line chart: column '{x_col}' not found")
+        if y_col and y_col not in df.columns:
+            raise ExecutionError(f"Line chart: column '{y_col}' not found")
+        return df
+
+    def _exec_scatter_chart(self, graph: WorkflowGraph, node: Node) -> pl.DataFrame:
+        df = self._get_input_df(graph, node)
+        x_col = node.params.get("x_column", "")
+        y_col = node.params.get("y_column", "")
+        if x_col and x_col not in df.columns:
+            raise ExecutionError(f"Scatter chart: column '{x_col}' not found")
+        if y_col and y_col not in df.columns:
+            raise ExecutionError(f"Scatter chart: column '{y_col}' not found")
+        return df
+
+    def _exec_histogram(self, graph: WorkflowGraph, node: Node) -> pl.DataFrame:
+        df = self._get_input_df(graph, node)
+        col = node.params.get("column", "")
+        if col and col not in df.columns:
+            raise ExecutionError(f"Histogram: column '{col}' not found")
+        return df
+
+    def _exec_box_chart(self, graph: WorkflowGraph, node: Node) -> pl.DataFrame:
+        df = self._get_input_df(graph, node)
+        cols = node.params.get("columns", [])
+        for c in cols:
+            if c not in df.columns:
+                raise ExecutionError(f"Box chart: column '{c}' not found")
+        return df
+
+    def _exec_heatmap(self, graph: WorkflowGraph, node: Node) -> pl.DataFrame:
+        df = self._get_input_df(graph, node)
+        x_col = node.params.get("x_column", "")
+        y_col = node.params.get("y_column", "")
+        val_col = node.params.get("value_column", "")
+        if x_col and x_col not in df.columns:
+            raise ExecutionError(f"Heatmap: column '{x_col}' not found")
+        if y_col and y_col not in df.columns:
+            raise ExecutionError(f"Heatmap: column '{y_col}' not found")
+        if val_col and val_col not in df.columns:
+            raise ExecutionError(f"Heatmap: column '{val_col}' not found")
+        return df
 
     def _exec_noop(self, graph: WorkflowGraph, node: Node) -> pl.DataFrame:
         try:

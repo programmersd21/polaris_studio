@@ -15,7 +15,6 @@ from typing import Dict, Optional
 
 from PySide6.QtGui import QFont, QFontDatabase
 
-
 FONT_FILES = {
     "inter": "Inter-Regular.ttf",
     "outfit": "Outfit-Regular.ttf",
@@ -189,6 +188,8 @@ def load_fonts() -> Dict[str, str]:
     if not font_dir:
         return {}
 
+    QFontDatabase.removeAllApplicationFonts()
+
     mapping: Dict[str, str] = {}
     for key, filename in FONT_FILES.items():
         path = os.path.join(font_dir, filename)
@@ -203,9 +204,10 @@ def load_fonts() -> Dict[str, str]:
         if not families:
             continue
         if key == "inter":
-            mapping[key] = _resolve_inter_family()
+            family = _resolve_inter_family()
+            mapping[key] = family if family in QFontDatabase.families() else "Inter"
         else:
-            mapping[key] = families[0]
+            mapping[key] = families[0] if families[0] in QFontDatabase.families() else key.title()
     return mapping
 
 

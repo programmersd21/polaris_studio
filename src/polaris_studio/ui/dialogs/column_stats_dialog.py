@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 
 from polaris_studio.core.profiler import ColumnProfile
 from polaris_studio.ui.dialogs.base_dialog import AnimatedDialog
-from polaris_studio.ui.theme import PALETTE, RADII, font_inter, font_instrument_serif, font_mono
+from polaris_studio.ui.theme import PALETTE, RADII, font_instrument_serif, font_inter, font_mono
 
 
 class ColumnStatsDialog(AnimatedDialog):

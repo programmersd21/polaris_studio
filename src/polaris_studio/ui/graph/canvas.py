@@ -20,18 +20,12 @@ from __future__ import annotations
 import math
 from typing import Dict, List, Optional
 
-from PySide6.QtCore import (
-    QPoint,
-    QPointF,
-    QRect,
-    QRectF,
-    QTimer,
-    Qt,
-    Signal,
-)
-from PySide6.QtGui import QDragEnterEvent, QDragMoveEvent, QDropEvent
+from PySide6.QtCore import QPoint, QPointF, QRect, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import (
     QColor,
+    QDragEnterEvent,
+    QDragMoveEvent,
+    QDropEvent,
     QFont,
     QKeyEvent,
     QKeySequence,
@@ -41,13 +35,7 @@ from PySide6.QtGui import (
     QResizeEvent,
     QWheelEvent,
 )
-from PySide6.QtWidgets import (
-    QGraphicsItem,
-    QGraphicsScene,
-    QGraphicsView,
-    QMenu,
-    QWidget,
-)
+from PySide6.QtWidgets import QGraphicsItem, QGraphicsScene, QGraphicsView, QMenu, QWidget
 
 from polaris_studio.core.graph import WorkflowGraph
 from polaris_studio.core.node_registry import NODE_REGISTRY
@@ -59,7 +47,6 @@ from polaris_studio.ui.graph.node_item import NodeItem
 from polaris_studio.ui.graph.port_item import PortDirection, PortItem
 from polaris_studio.ui.motion import animate_graphics_pos, graphics_destroy, graphics_materialize
 from polaris_studio.ui.theme import PALETTE, font_instrument_serif, font_inter
-
 
 GRID_SIZE = 20.0
 GRID_DOT_RADIUS = 1.0

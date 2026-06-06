@@ -5,7 +5,7 @@ from typing import Optional
 from PySide6.QtCore import QVariantAnimation
 from PySide6.QtWidgets import QLabel, QStatusBar, QWidget
 
-from polaris_studio.ui.motion import crossfade_label, _keep, accel_decel
+from polaris_studio.ui.motion import _keep, accel_decel, crossfade_label
 from polaris_studio.ui.theme import PALETTE, RADII, font_inter, font_outfit
 
 

@@ -6,12 +6,7 @@ from typing import Optional
 
 from PySide6.QtCore import QRectF, Qt
 from PySide6.QtGui import QBrush, QColor, QPainter, QPen
-from PySide6.QtWidgets import (
-    QGraphicsItem,
-    QGraphicsRectItem,
-    QStyleOptionGraphicsItem,
-    QWidget,
-)
+from PySide6.QtWidgets import QGraphicsItem, QGraphicsRectItem, QStyleOptionGraphicsItem, QWidget
 
 from polaris_studio.ui.theme import PALETTE
 

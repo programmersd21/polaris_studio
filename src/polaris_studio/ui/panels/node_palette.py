@@ -2,19 +2,12 @@ from __future__ import annotations
 
 from typing import Optional
 
-from PySide6.QtCore import QMimeData, QPoint, QPropertyAnimation, QSize, Qt, Signal
+from PySide6.QtCore import QMimeData, QPoint, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QDrag, QFont, QPainter, QPixmap
-from PySide6.QtWidgets import (
-    QGraphicsOpacityEffect,
-    QLineEdit,
-    QTreeWidget,
-    QTreeWidgetItem,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QLineEdit, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 
 from polaris_studio.core.node_registry import NODE_REGISTRY
-from polaris_studio.ui.motion import FAST, _keep, spring, accel_decel, opacity_pop
+from polaris_studio.ui.motion import FAST, opacity_pop
 from polaris_studio.ui.theme import PALETTE, RADII, font_inter
 
 
@@ -52,30 +45,15 @@ class NodeTree(QTreeWidget):
     def mousePressEvent(self, event) -> None:
         item = self.itemAt(event.pos())
         if item and item.data(0, Qt.ItemDataRole.UserRole):
-            # Opacity dip on press
-            effect = self.graphicsEffect()
-            if not isinstance(effect, QGraphicsOpacityEffect):
-                effect = QGraphicsOpacityEffect(self)
-                self.setGraphicsEffect(effect)
-            anim = QPropertyAnimation(effect, b"opacity", self)
-            anim.setStartValue(1.0)
-            anim.setEndValue(0.78)
-            anim.setDuration(55)
-            anim.setEasingCurve(accel_decel())
-            _keep(self, anim)
-            anim.start()
+            self._orig_ss = self.styleSheet()
+            self.setStyleSheet(self._orig_ss + "\nbackground-color: rgba(0,0,0,0.04);")
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event) -> None:
-        effect = self.graphicsEffect()
-        if isinstance(effect, QGraphicsOpacityEffect) and effect.opacity() < 1.0:
-            anim = QPropertyAnimation(effect, b"opacity", self)
-            anim.setStartValue(effect.opacity())
-            anim.setEndValue(1.0)
-            anim.setDuration(FAST)
-            anim.setEasingCurve(spring())
-            _keep(self, anim)
-            anim.start()
+        orig: Optional[str] = getattr(self, "_orig_ss", None)
+        if orig is not None:
+            QTimer.singleShot(55, lambda: self.setStyleSheet(orig))
+            self._orig_ss = ""
         super().mouseReleaseEvent(event)
 
 

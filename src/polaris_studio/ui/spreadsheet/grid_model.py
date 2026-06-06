@@ -6,8 +6,8 @@ import polars as pl
 from PySide6.QtCore import (
     QAbstractTableModel,
     QModelIndex,
-    QPersistentModelIndex,
     QObject,
+    QPersistentModelIndex,
     Qt,
     Signal,
 )

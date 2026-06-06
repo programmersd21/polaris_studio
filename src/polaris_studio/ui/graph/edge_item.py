@@ -17,12 +17,7 @@ from typing import Optional
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QVariantAnimation
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
-from PySide6.QtWidgets import (
-    QGraphicsItem,
-    QGraphicsPathItem,
-    QStyleOptionGraphicsItem,
-    QWidget,
-)
+from PySide6.QtWidgets import QGraphicsItem, QGraphicsPathItem, QStyleOptionGraphicsItem, QWidget
 
 from polaris_studio.core.graph import Edge
 from polaris_studio.ui.graph.node_item import NodeItem

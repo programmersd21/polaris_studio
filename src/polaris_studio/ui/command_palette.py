@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from polaris_studio.ui.motion import FAST, BASE, _keep, decel, accel_decel, opacity_pop
+from polaris_studio.ui.motion import BASE, FAST, _keep, accel_decel, decel, opacity_pop
 from polaris_studio.ui.theme import PALETTE, RADII, font_inter
 
 

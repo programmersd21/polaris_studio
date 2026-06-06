@@ -15,7 +15,7 @@ from PySide6.QtWidgets import QGraphicsView, QSizePolicy, QWidget
 
 from polaris_studio.ui.graph.edge_item import EdgeItem
 from polaris_studio.ui.graph.node_item import NodeItem
-from polaris_studio.ui.theme import PALETTE, RADII, font_inter, category_color
+from polaris_studio.ui.theme import PALETTE, RADII, category_color, font_inter
 
 
 class MinimapOverlay(QWidget):

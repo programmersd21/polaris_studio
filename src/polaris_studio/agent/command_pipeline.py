@@ -46,7 +46,6 @@ from polaris_studio.agent.schemas import (
 from polaris_studio.core.graph import CycleError, Node, NodeCategory, WorkflowGraph
 from polaris_studio.core.node_registry import NODE_REGISTRY
 
-
 logger = logging.getLogger(__name__)
 
 

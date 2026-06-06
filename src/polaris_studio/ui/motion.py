@@ -11,9 +11,9 @@ from typing import Callable, Iterable, Optional
 
 from PySide6.QtCore import (
     QEasingCurve,
+    QParallelAnimationGroup,
     QPoint,
     QPointF,
-    QParallelAnimationGroup,
     QPropertyAnimation,
     QSequentialAnimationGroup,
     QTimer,
@@ -21,7 +21,6 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QGraphicsObject, QGraphicsOpacityEffect, QWidget
-
 
 # ── timing constants ──────────────────────────────────────────────────────────
 MICRO = 80
@@ -244,18 +243,9 @@ def morph_bg(widget: QWidget, from_hex: str, to_hex: str, *, duration_ms: int = 
 
 
 def viewport_flash(widget: QWidget, *, duration_ms: int = BASE) -> None:
-    effect = widget.graphicsEffect()
-    if not isinstance(effect, QGraphicsOpacityEffect):
-        effect = QGraphicsOpacityEffect(widget)
-        widget.setGraphicsEffect(effect)
-    effect.setOpacity(0.82)
-    anim = QPropertyAnimation(effect, b"opacity", widget)
-    anim.setStartValue(0.82)
-    anim.setEndValue(1.0)
-    anim.setDuration(duration_ms)
-    anim.setEasingCurve(decel())
-    _keep(widget, anim)
-    anim.start()
+    orig = widget.styleSheet()
+    widget.setStyleSheet(orig + "\nbackground-color: rgba(36, 91, 219, 0.12);")
+    QTimer.singleShot(duration_ms, lambda: widget.setStyleSheet(orig))
 
 
 # ── graphics-item helpers ─────────────────────────────────────────────────────
