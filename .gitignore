@@ -41,7 +41,6 @@ Thumbs.db
 local/
 / local/
 *.polaris
-image.png
 
 # Misc
 *.sqlite
