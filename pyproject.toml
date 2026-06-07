@@ -13,7 +13,7 @@ dependencies = [
     "polars>=1.0.0",
     "pyarrow>=16.0.0",
     "PySide6>=6.7.0",
-    "pyqtgraph>=0.13.7",
+    "pyqtgraph==0.13.3",
     "openpyxl>=3.1.0",
     "pydantic>=2.7.0",
     "google-genai>=1.0.0",
@@ -38,6 +38,10 @@ disallow_untyped_defs = false
 [[tool.mypy.overrides]]
 module = ["openpyxl", "openpyxl.*", "pyqtgraph", "pyqtgraph.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["polaris_studio.ui.crash_diagnostics"]
+disable_error_code = ["valid-type"]
 
 [tool.ruff]
 line-length = 100

@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import os
+import sys
+from functools import partial
 from typing import Any, Dict, List, Optional
 
 import polars as pl
 from PySide6.QtCore import QPoint, QSettings, Qt, QThread, QTimer
 from PySide6.QtCore import Signal as ThreadSignal
-from PySide6.QtGui import QAction, QFont, QKeySequence, QShortcut
+from PySide6.QtGui import QAction, QFont, QKeySequence, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QButtonGroup,
     QDialog,
@@ -35,6 +37,7 @@ from polaris_studio.core.node_registry import NODE_REGISTRY
 from polaris_studio.state.app_state import AppState
 from polaris_studio.state.workspace import Workspace
 from polaris_studio.ui.command_palette import Command, CommandPalette
+from polaris_studio.ui.crash_diagnostics import install_crash_handler
 from polaris_studio.ui.graph.canvas import GraphCanvas
 from polaris_studio.ui.motion import fade_slide_in, viewport_flash
 from polaris_studio.ui.panels.ai_panel import AIPanel
@@ -89,6 +92,8 @@ class AsyncRunner(QThread):
 class PolarisMainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
+        install_crash_handler()
+        sys.excepthook = self._global_excepthook
         self._settings_manager = QSettings("PolarisStudio", "PolarisStudio")
         self._view_mode = ViewMode.GRAPH
         self._workspace = Workspace()
@@ -112,10 +117,10 @@ class PolarisMainWindow(QMainWindow):
         self.setMinimumSize(1280, 800)
         self.resize(1600, 1000)
 
-        self._setup_menus()
+        self._setup_docks()
         self._setup_toolbar()
         self._setup_central()
-        self._setup_docks()
+        self._setup_menus()
         self._setup_connections()
         self._setup_shortcuts()
         self._setup_command_palette()
@@ -125,6 +130,16 @@ class PolarisMainWindow(QMainWindow):
         self._update_title()
         self._load_and_apply_settings()
         QTimer.singleShot(0, self._run_launch_reveal)
+
+    def _global_excepthook(self, exc_type, exc_value, exc_traceback) -> None:
+        import traceback
+
+        msg = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+        try:
+            self._status_bar.set_status(f"Fatal: {exc_value}")
+        except Exception:
+            pass
+        print(msg, file=sys.stderr)
 
     def _run_launch_reveal(self) -> None:
         reveal_targets = [
@@ -215,15 +230,15 @@ class PolarisMainWindow(QMainWindow):
         file_menu.addSeparator()
 
         import_csv = QAction("Import CSV...", self)
-        import_csv.triggered.connect(lambda: self._import_file("csv"))
+        import_csv.triggered.connect(partial(self._import_file, "csv"))
         file_menu.addAction(import_csv)
 
         import_xlsx = QAction("Import XLSX...", self)
-        import_xlsx.triggered.connect(lambda: self._import_file("xlsx"))
+        import_xlsx.triggered.connect(partial(self._import_file, "xlsx"))
         file_menu.addAction(import_xlsx)
 
         import_parquet = QAction("Import Parquet...", self)
-        import_parquet.triggered.connect(lambda: self._import_file("parquet"))
+        import_parquet.triggered.connect(partial(self._import_file, "parquet"))
         file_menu.addAction(import_parquet)
 
         file_menu.addSeparator()
@@ -253,36 +268,36 @@ class PolarisMainWindow(QMainWindow):
         view_menu = menubar.addMenu("View")
         spreadsheet_mode = QAction("Spreadsheet Mode", self)
         spreadsheet_mode.setShortcut(QKeySequence("F1"))
-        spreadsheet_mode.triggered.connect(lambda: self._set_view_mode(ViewMode.SPREADSHEET))
+        spreadsheet_mode.triggered.connect(partial(self._set_view_mode, ViewMode.SPREADSHEET))
         view_menu.addAction(spreadsheet_mode)
 
         graph_mode = QAction("Graph Mode", self)
         graph_mode.setShortcut(QKeySequence("F2"))
-        graph_mode.triggered.connect(lambda: self._set_view_mode(ViewMode.GRAPH))
+        graph_mode.triggered.connect(partial(self._set_view_mode, ViewMode.GRAPH))
         view_menu.addAction(graph_mode)
 
         split_mode = QAction("Split Mode", self)
         split_mode.setShortcut(QKeySequence("F3"))
-        split_mode.triggered.connect(lambda: self._set_view_mode(ViewMode.SPLIT))
+        split_mode.triggered.connect(partial(self._set_view_mode, ViewMode.SPLIT))
         view_menu.addAction(split_mode)
 
         view_menu.addSeparator()
         toggle_palette = QAction("Node Palette", self)
         toggle_palette.setCheckable(True)
         toggle_palette.setChecked(True)
-        toggle_palette.triggered.connect(lambda b: self._node_palette_dock.setVisible(b))
+        toggle_palette.triggered.connect(self._node_palette_dock.setVisible)
         view_menu.addAction(toggle_palette)
 
         toggle_properties = QAction("Properties Panel", self)
         toggle_properties.setCheckable(True)
         toggle_properties.setChecked(True)
-        toggle_properties.triggered.connect(lambda b: self._properties_panel_dock.setVisible(b))
+        toggle_properties.triggered.connect(self._properties_panel_dock.setVisible)
         view_menu.addAction(toggle_properties)
 
         toggle_table = QAction("Table View", self)
         toggle_table.setCheckable(True)
         toggle_table.setChecked(True)
-        toggle_table.triggered.connect(lambda b: self._table_view.setVisible(b))
+        toggle_table.triggered.connect(self._table_view.setVisible)
         view_menu.addAction(toggle_table)
 
         graph_menu = menubar.addMenu("Graph")
@@ -308,7 +323,7 @@ class PolarisMainWindow(QMainWindow):
         ai_menu = menubar.addMenu("AI")
         toggle_ai = QAction("AI Chat Panel", self)
         toggle_ai.setShortcut(QKeySequence("Ctrl+Shift+A"))
-        toggle_ai.triggered.connect(lambda: self._toggle_drawer("ai"))
+        toggle_ai.triggered.connect(partial(self._toggle_drawer, "ai"))
         ai_menu.addAction(toggle_ai)
 
     def _setup_toolbar(self) -> None:
@@ -344,6 +359,25 @@ class PolarisMainWindow(QMainWindow):
         """)
         self.addToolBar(Qt.ToolBarArea.TopToolBarArea, toolbar)
 
+        icon_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "..", "..", "icon", "icon.png"
+        )
+        logo = QLabel()
+        pix = QPixmap(icon_path)
+        if not pix.isNull():
+            logo.setPixmap(
+                pix.scaled(
+                    24,
+                    24,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+            )
+            logo.setStyleSheet("padding: 0 4px 0 8px;")
+        else:
+            logo.setText("")
+        toolbar.addWidget(logo)
+
         self._wordmark = QLabel("Polaris Studio")
         wordmark_font = font_instrument_serif(24)
         wordmark_font.setStyleName("Regular")
@@ -370,21 +404,21 @@ class PolarisMainWindow(QMainWindow):
         spreadsheet_btn.setChecked(True)
         toolbar.addWidget(spreadsheet_btn)
         mode_group.addButton(spreadsheet_btn)
-        spreadsheet_btn.clicked.connect(lambda: self._set_view_mode(ViewMode.SPREADSHEET))
+        spreadsheet_btn.clicked.connect(partial(self._set_view_mode, ViewMode.SPREADSHEET))
 
         graph_btn = QToolButton()
         graph_btn.setText("Graph")
         graph_btn.setCheckable(True)
         toolbar.addWidget(graph_btn)
         mode_group.addButton(graph_btn)
-        graph_btn.clicked.connect(lambda: self._set_view_mode(ViewMode.GRAPH))
+        graph_btn.clicked.connect(partial(self._set_view_mode, ViewMode.GRAPH))
 
         split_btn = QToolButton()
         split_btn.setText("Split")
         split_btn.setCheckable(True)
         toolbar.addWidget(split_btn)
         mode_group.addButton(split_btn)
-        split_btn.clicked.connect(lambda: self._set_view_mode(ViewMode.SPLIT))
+        split_btn.clicked.connect(partial(self._set_view_mode, ViewMode.SPLIT))
 
         toolbar.addSeparator()
 
@@ -402,7 +436,7 @@ class PolarisMainWindow(QMainWindow):
         toolbar.addSeparator()
 
         ai_btn = toolbar.addAction("AI")
-        ai_btn.triggered.connect(lambda: self._toggle_drawer("ai"))
+        ai_btn.triggered.connect(partial(self._toggle_drawer, "ai"))
 
     def _setup_central(self) -> None:
         self._central_splitter = QSplitter(Qt.Orientation.Vertical)
@@ -594,7 +628,7 @@ class PolarisMainWindow(QMainWindow):
         self._execute_all_shortcut = QShortcut(QKeySequence("F5"), self)
         self._execute_all_shortcut.activated.connect(self._execute_all)
         self._ai_toggle_shortcut = QShortcut(QKeySequence("Ctrl+Shift+A"), self)
-        self._ai_toggle_shortcut.activated.connect(lambda: self._toggle_drawer("ai"))
+        self._ai_toggle_shortcut.activated.connect(partial(self._toggle_drawer, "ai"))
 
     def _setup_command_palette(self) -> None:
         commands: List[Command] = []
@@ -775,7 +809,7 @@ class PolarisMainWindow(QMainWindow):
             self._app_state.select_node(node_id)
             from PySide6.QtCore import QTimer
 
-            QTimer.singleShot(100, lambda nid=node_id: self._app_state.request_execute(nid))
+            QTimer.singleShot(100, partial(self._app_state.request_execute, node_id))
 
     def _export_as(self, fmt: str) -> None:
         selected = self._app_state.selected_node_ids
@@ -969,12 +1003,12 @@ class PolarisMainWindow(QMainWindow):
             "heatmap",
         }
         if node.node_type in CHART_TYPES:
+            self._chart_panel_dock.show()
             self._chart_panel.set_chart_type(node.node_type)
             self._chart_panel.set_params(node.params)
             df = self._app_state._engine.get_cached(node.node_id)  # type: ignore[attr-defined]
             if df is not None:
-                self._chart_panel.update_data(df)
-            self._chart_panel_dock.show()
+                QTimer.singleShot(0, partial(self._deferred_chart_update, df))
 
     def _on_canvas_selection_changed(self, node_ids: List[str]) -> None:
         if node_ids:
@@ -1106,6 +1140,13 @@ class PolarisMainWindow(QMainWindow):
     def _on_compute_finished(self, node_id: str, duration_ms: float) -> None:
         self._graph_canvas.stop_edge_animation()
         self._status_bar.set_execution_time(duration_ms)
+        if node_id == "all":
+            for item in self._graph_canvas._node_items.values():  # type: ignore[attr-defined]
+                item.set_computing(False)
+        else:
+            target = self._graph_canvas.get_node_item(node_id)
+            if target is not None:
+                target.set_computing(False)
         viewport_flash(self._graph_canvas.viewport())
 
     def _on_compute_error(self, node_id: str, error: str) -> None:
@@ -1126,12 +1167,12 @@ class PolarisMainWindow(QMainWindow):
             }
             node = self._workspace.active_graph.get_node(node_id)
             if node is not None and node.node_type in CHART_TYPES:
+                self._chart_panel_dock.show()
                 self._chart_panel.set_chart_type(node.node_type)
                 self._chart_panel.set_params(node.params)
-                self._chart_panel.update_data(data)
-                self._chart_panel_dock.show()
+                QTimer.singleShot(0, partial(self._deferred_chart_update, data))
             else:
-                self._chart_panel.update_data(data)
+                QTimer.singleShot(0, partial(self._deferred_chart_update, data))
         elif isinstance(data, str) and str(node_id).startswith("preview:"):
             try:
                 import json
@@ -1162,6 +1203,12 @@ class PolarisMainWindow(QMainWindow):
                 self._profile_panel_dock.show()
             except Exception:
                 pass
+
+    def _deferred_chart_update(self, data: pl.DataFrame) -> None:
+        try:
+            self._chart_panel.update_data(data)
+        except Exception as exc:
+            self._status_bar.set_status(f"Chart error: {exc}")
 
     def _on_preview_requested(self, node_id: str) -> None:
         self._app_state.request_preview(node_id)
