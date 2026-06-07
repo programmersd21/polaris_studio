@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import polars as pl
@@ -11,6 +11,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
+    QGraphicsItem,
     QGraphicsLineItem,
     QGraphicsRectItem,
     QLabel,
@@ -41,6 +42,8 @@ class ChartPanel(QWidget):
         self._df: Optional[pl.DataFrame] = None
         self._chart_type: str = "bar"
         self._node_params: Dict[str, Any] = {}
+        self._chart_items: List[QGraphicsItem] = []
+        self._chart_curves: List[Any] = []
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -136,10 +139,14 @@ class ChartPanel(QWidget):
     def _render(self) -> None:
         if self._df is None or len(self._df) == 0:
             self._plot_widget.clear()
+            self._chart_items.clear()
+            self._chart_curves.clear()
             self._no_data_label.setVisible(True)
             return
 
         self._plot_widget.clear()
+        self._chart_items.clear()
+        self._chart_curves.clear()
         self._no_data_label.setVisible(False)
 
         try:
@@ -156,7 +163,9 @@ class ChartPanel(QWidget):
             elif self._chart_type == "heatmap":
                 self._render_heatmap()
         except Exception as exc:
-            self._plot_widget.addItem(pg.TextItem(f"Chart error: {exc}", color="#f38ba8"))
+            err_item = pg.TextItem(f"Chart error: {exc}", color="#f38ba8")
+            self._plot_widget.addItem(err_item)
+            self._chart_items.append(err_item)
 
     def _pick_xy(self) -> tuple:
         cols = self._df.columns  # type: ignore[union-attr]
@@ -214,6 +223,7 @@ class ChartPanel(QWidget):
                 rect.setPen(pen)
                 rect.setBrush(brush)
                 self._plot_widget.addItem(rect)
+                self._chart_items.append(rect)
         self._plot_widget.getAxis("bottom").setTicks([list(enumerate(x))])
         self._plot_widget.setLabel("bottom", x_col)
         self._plot_widget.setLabel("left", ", ".join(y_multi))
@@ -229,7 +239,8 @@ class ChartPanel(QWidget):
             if not y:
                 continue
             color = _PALETTE_HEX[i % len(_PALETTE_HEX)]
-            self._plot_widget.plot(x, y, pen=pg.mkPen(color=color, width=2), name=col)
+            curve = self._plot_widget.plot(x, y, pen=pg.mkPen(color=color, width=2), name=col)
+            self._chart_curves.append(curve)
         if len(y_multi) > 1:
             self._plot_widget.addLegend()
         self._plot_widget.setLabel("bottom", x_col)
@@ -257,6 +268,7 @@ class ChartPanel(QWidget):
             brushes = pg.mkBrush(_ACCENT)  # type: ignore[assignment]
         scatter = pg.ScatterPlotItem(x, y, pen=None, brush=brushes, size=8)
         self._plot_widget.addItem(scatter)
+        self._chart_items.append(scatter)
         self._plot_widget.setLabel("bottom", x_col)
         self._plot_widget.setLabel("left", y_col)
 
@@ -275,6 +287,7 @@ class ChartPanel(QWidget):
             rect.setPen(pen)
             rect.setBrush(brush)
             self._plot_widget.addItem(rect)
+            self._chart_items.append(rect)
         self._plot_widget.setLabel("bottom", col)
         self._plot_widget.setLabel("left", "Frequency")
 
@@ -306,18 +319,22 @@ class ChartPanel(QWidget):
             box.setPen(pg.mkPen(_ACCENT, width=2))
             box.setBrush(pg.mkBrush(124, 106, 247, 80))
             self._plot_widget.addItem(box)
+            self._chart_items.append(box)
 
             whisker_low = QGraphicsLineItem(i, lo, i, q1)
             whisker_low.setPen(pg.mkPen(_ACCENT, width=1.5))
             self._plot_widget.addItem(whisker_low)
+            self._chart_items.append(whisker_low)
 
             whisker_high = QGraphicsLineItem(i, q3, i, hi)
             whisker_high.setPen(pg.mkPen(_ACCENT, width=1.5))
             self._plot_widget.addItem(whisker_high)
+            self._chart_items.append(whisker_high)
 
             median = QGraphicsLineItem(i - 0.25, med, i + 0.25, med)
             median.setPen(pg.mkPen("#1a1a1a", width=2))
             self._plot_widget.addItem(median)
+            self._chart_items.append(median)
 
         if ticks:
             self._plot_widget.getAxis("bottom").setTicks([ticks])
@@ -352,6 +369,7 @@ class ChartPanel(QWidget):
         )
         img = pg.ImageItem(data.T)
         self._plot_widget.addItem(img)
+        self._chart_items.append(img)
         self._plot_widget.setLabel("bottom", x_col)
         self._plot_widget.setLabel("left", y_col)
 
