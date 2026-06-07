@@ -121,8 +121,13 @@ if sys.platform == "win32":
             kernel32 = ctypes.windll.kernel32
             CreateFileW = kernel32.CreateFileW
             CreateFileW.argtypes = [
-                wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
-                wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE,
+                wintypes.LPCWSTR,
+                wintypes.DWORD,
+                wintypes.DWORD,
+                wintypes.LPVOID,
+                wintypes.DWORD,
+                wintypes.DWORD,
+                wintypes.HANDLE,
             ]
             CreateFileW.restype = wintypes.HANDLE
 
@@ -132,8 +137,13 @@ if sys.platform == "win32":
             CREATE_ALWAYS = 2
 
             hFile = CreateFileW(
-                dump_path, GENERIC_WRITE, FILE_SHARE_WRITE,
-                None, CREATE_ALWAYS, 0, None,
+                dump_path,
+                GENERIC_WRITE,
+                FILE_SHARE_WRITE,
+                None,
+                CREATE_ALWAYS,
+                0,
+                None,
             )
             if not hFile or hFile == INVALID_HANDLE_VALUE:
                 return None
@@ -144,7 +154,11 @@ if sys.platform == "win32":
                 mdei.ExceptionPointers = exception_info
                 mdei.ClientPointers = False
 
-                dump_type = MiniDumpWithDataSegs | MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithThreadInfo
+                dump_type = (
+                    MiniDumpWithDataSegs
+                    | MiniDumpWithIndirectlyReferencedMemory
+                    | MiniDumpWithThreadInfo
+                )
 
                 MiniDumpWriteDump(
                     kernel32.GetCurrentProcess(),
@@ -152,7 +166,8 @@ if sys.platform == "win32":
                     hFile,
                     dump_type,
                     ctypes.byref(mdei),
-                    None, None,
+                    None,
+                    None,
                 )
             finally:
                 kernel32.CloseHandle(hFile)
@@ -184,9 +199,7 @@ if sys.platform == "win32":
             pass
         return EXCEPTION_EXECUTE_HANDLER
 
-    EXCEPTION_HANDLER = ctypes.WINFUNCTYPE(
-        wintypes.DWORD, ctypes.POINTER(EXCEPTION_POINTERS)
-    )
+    EXCEPTION_HANDLER = ctypes.WINFUNCTYPE(wintypes.DWORD, ctypes.POINTER(EXCEPTION_POINTERS))
 
     def install_crash_handler() -> None:
         global _handler_ref
