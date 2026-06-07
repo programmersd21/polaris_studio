@@ -1,7 +1,8 @@
 import os
 import sys
+import warnings
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, qInstallMessageHandler
 from PySide6.QtWidgets import QApplication
 
 from polaris_studio.ui.main_window import PolarisMainWindow
@@ -17,14 +18,30 @@ def load_stylesheet() -> str:
     return ""
 
 
-def main() -> None:
-    # Windows: set AppUserModelID so taskbar shows the correct icon
-    import sys as _sys
+def _qt_message_handler(mode, context, message) -> None:
+    if "Point size <= 0" in message:
+        return
+    if "libpyside" in message and "Failed to disconnect" in message:
+        return
+    sys.stderr.write(f"{message}\n")
 
-    if _sys.platform == "win32":
+
+def _install_warnings_filter() -> None:
+    warnings.filterwarnings(
+        "ignore",
+        message=r".*Failed to disconnect.*from signal.*",
+        category=RuntimeWarning,
+    )
+
+
+def main() -> None:
+    if sys.platform == "win32":
         import ctypes
 
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("com.programmersd21.polaris")
+
+    qInstallMessageHandler(_qt_message_handler)
+    _install_warnings_filter()
 
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
@@ -38,7 +55,6 @@ def main() -> None:
     load_fonts()
     apply_application_font(app)
 
-    # App icon - shows in taskbar and window title bar
     icon_path = os.path.join(os.path.dirname(__file__), "..", "..", "icon", "icon.png")
     icon_path = os.path.abspath(icon_path)
     if os.path.exists(icon_path):

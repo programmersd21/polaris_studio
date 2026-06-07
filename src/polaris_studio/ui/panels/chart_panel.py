@@ -7,6 +7,7 @@ import polars as pl
 import pyqtgraph as pg
 import pyqtgraph.exporters as exporters
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -86,6 +87,10 @@ class ChartPanel(QWidget):
         self._plot_widget.setLabel("bottom", "Index")
         self._plot_widget.showGrid(x=True, y=True, alpha=0.1)
         self._plot_widget.setStyleSheet("border: none;")
+        axis_font = QFont(self._plot_widget.font())
+        axis_font.setPointSize(max(1, axis_font.pointSize() or 10))
+        self._plot_widget.getAxis("bottom").setStyle(tickFont=axis_font)
+        self._plot_widget.getAxis("left").setStyle(tickFont=axis_font)
         layout.addWidget(self._plot_widget, 1)
 
         self._no_data_label = QLabel("No data. Connect a node to see its chart.")
@@ -195,20 +200,20 @@ class ChartPanel(QWidget):
             y_multi = [y_col] if y_col else self._df.columns[1:2]
         x = self._df[x_col].to_list()
         x_num = list(range(len(x)))
+        bar_w = 0.7 / max(len(y_multi), 1)
         for i, col in enumerate(y_multi):
             y = self._to_numeric(self._df[col].to_list())
             if not y:
                 continue
             color = _PALETTE_HEX[i % len(_PALETTE_HEX)]
-            offset = (i - (len(y_multi) - 1) / 2) * 0.18
-            bg = pg.BarGraphItem(
-                x=[v + offset for v in x_num],
-                height=y,
-                width=0.14,
-                brush=pg.mkBrush(color),
-                pen=pg.mkPen(color),
-            )
-            self._plot_widget.addItem(bg)
+            offset = (i - (len(y_multi) - 1) / 2) * bar_w
+            pen = pg.mkPen(color)
+            brush = pg.mkBrush(color)
+            for xi, yi in zip(x_num, y):
+                rect = QGraphicsRectItem(xi + offset - bar_w / 2, 0, bar_w, float(yi))
+                rect.setPen(pen)
+                rect.setBrush(brush)
+                self._plot_widget.addItem(rect)
         self._plot_widget.getAxis("bottom").setTicks([list(enumerate(x))])
         self._plot_widget.setLabel("bottom", x_col)
         self._plot_widget.setLabel("left", ", ".join(y_multi))
@@ -262,8 +267,14 @@ class ChartPanel(QWidget):
         bins = int(self._node_params.get("bins", 20))
         data = self._df[col].drop_nulls().to_list()
         y, x = np.histogram(data, bins=bins)
-        bg = pg.BarGraphItem(x=x[:-1], height=y, width=(x[1] - x[0]) * 0.8, brush=_ACCENT)
-        self._plot_widget.addItem(bg)
+        pen = pg.mkPen(_ACCENT)
+        brush = pg.mkBrush(_ACCENT)
+        bw = float(x[1] - x[0]) * 0.8
+        for xi, yi in zip(x[:-1], y):
+            rect = QGraphicsRectItem(float(xi) - bw / 2, 0, bw, float(yi))
+            rect.setPen(pen)
+            rect.setBrush(brush)
+            self._plot_widget.addItem(rect)
         self._plot_widget.setLabel("bottom", col)
         self._plot_widget.setLabel("left", "Frequency")
 
