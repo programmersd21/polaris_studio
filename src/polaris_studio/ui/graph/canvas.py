@@ -144,6 +144,12 @@ class GraphCanvas(QGraphicsView):
     def set_snap_enabled(self, enabled: bool) -> None:
         self._snap_enabled = enabled
 
+    def _toggle_grid(self) -> None:
+        self.set_grid_enabled(not self._grid_enabled)
+
+    def _toggle_snap(self) -> None:
+        self.set_snap_enabled(not self._snap_enabled)
+
     def _snap(self, value: float) -> float:
         if not self._snap_enabled:
             return value
@@ -594,9 +600,9 @@ class GraphCanvas(QGraphicsView):
         fit_action = menu.addAction("Fit to Screen (F)")
         fit_action.triggered.connect(self.zoom_to_fit)
         snap_action = menu.addAction("Toggle Snap to Grid (H)")
-        snap_action.triggered.connect(lambda: self.set_snap_enabled(not self._snap_enabled))  # type: ignore[misc]
+        snap_action.triggered.connect(self._toggle_snap)
         grid_action = menu.addAction("Toggle Grid (G)")
-        grid_action.triggered.connect(lambda: self.set_grid_enabled(not self._grid_enabled))
+        grid_action.triggered.connect(self._toggle_grid)
 
         chosen = menu.exec(self.mapToGlobal(screen_pos))
         if chosen is not None and chosen.data() is not None:

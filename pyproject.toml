@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "polaris-studio"
-version = "1.0.0"
+version = "1.0.1"
 description = "A local-first, AI-native, node-powered data IDE"
 requires-python = ">=3.11"
 license = {text = "MIT"}

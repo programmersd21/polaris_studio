@@ -159,7 +159,7 @@ class ExpressionEditorDialog(AnimatedDialog):
         ops_widget = QListWidget()
         for op in ["+", "-", "*", "/", "==", "!=", ">", "<", ">=", "<=", "&", "|", "~"]:
             ops_widget.addItem(op)
-        ops_widget.itemDoubleClicked.connect(lambda item: self._insert_text(item.text()))
+        ops_widget.itemDoubleClicked.connect(self._insert_op)
         ops_widget.setStyleSheet(list_qss)
         left_layout.addWidget(ops_widget)
 
@@ -193,7 +193,7 @@ class ExpressionEditorDialog(AnimatedDialog):
             ".str.to_lowercase()",
         ]:
             funcs_widget.addItem(func)
-        funcs_widget.itemDoubleClicked.connect(lambda item: self._insert_text(item.text()))
+        funcs_widget.itemDoubleClicked.connect(self._insert_func)
         funcs_widget.setStyleSheet(list_qss)
         left_layout.addWidget(funcs_widget)
 
@@ -321,6 +321,12 @@ class ExpressionEditorDialog(AnimatedDialog):
 
     def _insert_column(self, item: QListWidgetItem) -> None:
         self._insert_text(f"pl.col('{item.text()}')")
+
+    def _insert_op(self, item: QListWidgetItem) -> None:
+        self._insert_text(item.text())
+
+    def _insert_func(self, item: QListWidgetItem) -> None:
+        self._insert_text(item.text())
 
     def _insert_text(self, text: str) -> None:
         cursor = self._editor.textCursor()

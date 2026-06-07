@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import partial
 from typing import Any, List, Optional, Set
 
 from PySide6.QtCore import QItemSelection, QModelIndex, Qt, Signal
@@ -8,6 +9,10 @@ from PySide6.QtWidgets import QAbstractItemView, QApplication, QMenu, QTableView
 
 from polaris_studio.ui.motion import viewport_flash
 from polaris_studio.ui.spreadsheet.grid_model import PolarisGridModel
+
+
+def _emit_column_action(signal, action, col_name, extra, checked=False):
+    signal.emit(action, f"{col_name}|{extra}")
 
 
 class SpreadsheetGrid(QTableView):
@@ -105,30 +110,30 @@ class SpreadsheetGrid(QTableView):
         menu = QMenu(self)
 
         sort_asc = QAction("Sort Ascending", self)
-        sort_asc.triggered.connect(lambda: self.sortByColumn(col, Qt.SortOrder.AscendingOrder))
+        sort_asc.triggered.connect(partial(self.sortByColumn, col, Qt.SortOrder.AscendingOrder))
         menu.addAction(sort_asc)
 
         sort_desc = QAction("Sort Descending", self)
-        sort_desc.triggered.connect(lambda: self.sortByColumn(col, Qt.SortOrder.DescendingOrder))
+        sort_desc.triggered.connect(partial(self.sortByColumn, col, Qt.SortOrder.DescendingOrder))
         menu.addAction(sort_desc)
 
         menu.addSeparator()
 
         filter_act = QAction("Filter by this column...", self)
-        filter_act.triggered.connect(lambda: self.column_action_requested.emit("filter", col_name))
+        filter_act.triggered.connect(partial(self.column_action_requested.emit, "filter", col_name))
         menu.addAction(filter_act)
 
         menu.addSeparator()
 
         rename_act = QAction("Rename Column", self)
-        rename_act.triggered.connect(lambda: self.column_action_requested.emit("rename", col_name))
+        rename_act.triggered.connect(partial(self.column_action_requested.emit, "rename", col_name))
         menu.addAction(rename_act)
 
         change_type_menu = QMenu("Change Type", self)
         for dt in ["Int32", "Int64", "Float32", "Float64", "Utf8", "Boolean", "Date", "Datetime"]:
             act = QAction(dt, self)
             act.triggered.connect(
-                lambda checked, d=dt: self.column_action_requested.emit("cast", f"{col_name}|{d}")
+                partial(_emit_column_action, self.column_action_requested, "cast", col_name, dt)
             )
             change_type_menu.addAction(act)
         menu.addMenu(change_type_menu)
@@ -137,8 +142,8 @@ class SpreadsheetGrid(QTableView):
         for strat in ["Forward Fill", "Backward Fill", "Mean", "Median", "Zero", "Empty String"]:
             act = QAction(strat, self)
             act.triggered.connect(
-                lambda checked, s=strat: self.column_action_requested.emit(
-                    "fill_null", f"{col_name}|{s}"
+                partial(
+                    _emit_column_action, self.column_action_requested, "fill_null", col_name, strat
                 )
             )
             fill_menu.addAction(act)
@@ -147,11 +152,11 @@ class SpreadsheetGrid(QTableView):
         menu.addSeparator()
 
         stats_act = QAction("Column Statistics...", self)
-        stats_act.triggered.connect(lambda: self.column_action_requested.emit("stats", col_name))
+        stats_act.triggered.connect(partial(self.column_action_requested.emit, "stats", col_name))
         menu.addAction(stats_act)
 
         freeze_act = QAction("Freeze at This Column", self)
-        freeze_act.triggered.connect(lambda: self.column_action_requested.emit("freeze", str(col)))
+        freeze_act.triggered.connect(partial(self.column_action_requested.emit, "freeze", str(col)))
         menu.addAction(freeze_act)
 
         menu.exec(self.horizontalHeader().viewport().mapToGlobal(pos))

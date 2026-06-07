@@ -176,6 +176,17 @@ class SettingsDialog(AnimatedDialog):
         fl.addRow("Font Size:", self._font_size)
 
         layout.addWidget(font_group)
+
+        startup_group = QGroupBox("Startup")
+        sl = QVBoxLayout(startup_group)
+        self._show_splash = QCheckBox("Show intro splash screen on launch")
+        self._show_splash.setChecked(self._settings.get("show_splash", True))
+        self._show_splash.setToolTip(
+            "Plays the centered Polaris Studio intro animation when the app opens."
+        )
+        sl.addWidget(self._show_splash)
+
+        layout.addWidget(startup_group)
         layout.addStretch()
         return w
 
@@ -223,6 +234,7 @@ class SettingsDialog(AnimatedDialog):
             "ai_show_action_json": self._show_action_json.isChecked(),
             "theme": self._theme_combo.currentText(),
             "font_size": self._font_size.value(),
+            "show_splash": self._show_splash.isChecked(),
             "worker_count": self._worker_count.value(),
             "cache_size": self._cache_size.value(),
             "auto_profile": self._auto_profile.isChecked(),

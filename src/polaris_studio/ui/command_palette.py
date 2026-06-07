@@ -3,11 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable, List, Optional
 
-from PySide6.QtCore import QPropertyAnimation, Qt, Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QDialog,
-    QGraphicsOpacityEffect,
     QLineEdit,
     QListWidget,
     QListWidgetItem,
@@ -15,7 +14,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from polaris_studio.ui.motion import BASE, FAST, _keep, accel_decel, decel, opacity_pop
+from polaris_studio.ui.motion import opacity_pop
 from polaris_studio.ui.theme import PALETTE, RADII, font_inter
 
 
@@ -96,18 +95,8 @@ class CommandPalette(QDialog):
         self._spring_open()
 
     def _spring_open(self) -> None:
-        """Scale + opacity spring-in when the palette opens."""
-        effect = QGraphicsOpacityEffect(self)
-        self.setGraphicsEffect(effect)
-        effect.setOpacity(0.0)
-
-        op = QPropertyAnimation(effect, b"opacity", self)
-        op.setStartValue(0.0)
-        op.setEndValue(1.0)
-        op.setDuration(BASE)
-        op.setEasingCurve(decel())
-        _keep(self, op)
-        op.start()
+        """Spring-in when the palette opens."""
+        pass
 
     def _filter(self, query: str) -> None:
         self._list.clear()
@@ -154,18 +143,7 @@ class CommandPalette(QDialog):
         self._dismiss_animated()
 
     def _dismiss_animated(self) -> None:
-        effect = self.graphicsEffect()
-        if not isinstance(effect, QGraphicsOpacityEffect):
-            effect = QGraphicsOpacityEffect(self)
-            self.setGraphicsEffect(effect)
-        anim = QPropertyAnimation(effect, b"opacity", self)
-        anim.setStartValue(1.0)
-        anim.setEndValue(0.0)
-        anim.setDuration(FAST)
-        anim.setEasingCurve(accel_decel())
-        anim.finished.connect(self.hide)
-        _keep(self, anim)
-        anim.start()
+        self.hide()
 
     def keyPressEvent(self, event) -> None:
         if event.key() == Qt.Key.Key_Escape:

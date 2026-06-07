@@ -7,6 +7,7 @@ is deleted. No lambda-based Qt callbacks are used (avoid Windows AV crash).
 
 from __future__ import annotations
 
+from functools import partial
 from typing import Callable, Iterable, Optional
 
 from PySide6.QtCore import (
@@ -15,12 +16,11 @@ from PySide6.QtCore import (
     QPoint,
     QPointF,
     QPropertyAnimation,
-    QSequentialAnimationGroup,
     QTimer,
     QVariantAnimation,
 )
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QGraphicsObject, QGraphicsOpacityEffect, QWidget
+from PySide6.QtWidgets import QGraphicsObject, QWidget
 
 # ── timing constants ──────────────────────────────────────────────────────────
 MICRO = 80
@@ -70,7 +70,12 @@ def _keep(owner: object, anim: object) -> None:
     bucket.append(anim)
     finished = getattr(anim, "finished", None)
     if finished is not None:
-        finished.connect(lambda: bucket.remove(anim) if anim in bucket else None)
+        finished.connect(partial(_cleanup_anim, anim, bucket))
+
+
+def _cleanup_anim(anim: object, bucket: list) -> None:
+    if anim in bucket:
+        bucket.remove(anim)
 
 
 # ── widget entrance ───────────────────────────────────────────────────────────
@@ -83,35 +88,18 @@ def fade_slide_in(
     duration_ms: int = BASE,
     offset: QPoint = QPoint(0, 14),
 ) -> None:
-    effect = widget.graphicsEffect()
-    if not isinstance(effect, QGraphicsOpacityEffect):
-        effect = QGraphicsOpacityEffect(widget)
-        widget.setGraphicsEffect(effect)
-    effect.setOpacity(0.0)
-
     end_pos = widget.pos()
     start_pos = end_pos + offset
     widget.move(start_pos)
     widget.setVisible(True)
 
-    group = QParallelAnimationGroup(widget)
-
-    op = QPropertyAnimation(effect, b"opacity", group)
-    op.setStartValue(0.0)
-    op.setEndValue(1.0)
-    op.setDuration(duration_ms)
-    op.setEasingCurve(decel())
-
-    pos = QPropertyAnimation(widget, b"pos", group)
-    pos.setStartValue(start_pos)
-    pos.setEndValue(end_pos)
-    pos.setDuration(duration_ms)
-    pos.setEasingCurve(spring())
-
-    group.addAnimation(op)
-    group.addAnimation(pos)
-    _keep(widget, group)
-    QTimer.singleShot(delay_ms, group.start)
+    anim = QPropertyAnimation(widget, b"pos", widget)
+    anim.setStartValue(start_pos)
+    anim.setEndValue(end_pos)
+    anim.setDuration(duration_ms)
+    anim.setEasingCurve(spring())
+    _keep(widget, anim)
+    QTimer.singleShot(delay_ms, anim.start)
 
 
 def staggered_reveal(widgets: Iterable[QWidget], *, delay_ms: int = 0) -> None:
@@ -129,18 +117,24 @@ def press_scale(widget: QWidget, *, scale_down: float = 0.94) -> None:
     anim.setEndValue(scale_down)
     anim.setDuration(MICRO)
     anim.setEasingCurve(accel_decel())
-
-    def _apply(v: float) -> None:
-        if not widget.isVisible():
-            return
-        # Use stylesheet transform - widget must have setProperty support
-        widget.setProperty("_press_scale", v)
-        widget.style().unpolish(widget)
-        widget.style().polish(widget)
-
-    anim.valueChanged.connect(_apply)
+    anim.valueChanged.connect(partial(_apply_press_scale, widget))
     _keep(widget, anim)
     anim.start()
+
+
+def _apply_press_scale(widget: QWidget, v: float) -> None:
+    if not is_alive(widget):
+        return
+    widget.setProperty("_press_scale", v)
+    widget.style().unpolish(widget)
+    widget.style().polish(widget)
+
+
+def is_alive(widget: QWidget) -> bool:
+    try:
+        return widget.isVisible()
+    except RuntimeError:
+        return False
 
 
 def release_scale(widget: QWidget) -> None:
@@ -150,7 +144,6 @@ def release_scale(widget: QWidget) -> None:
     anim.setEndValue(1.0)
     anim.setDuration(FAST)
     anim.setEasingCurve(spring())
-    anim.valueChanged.connect(lambda v: None)  # force keep-alive
     _keep(widget, anim)
     anim.start()
 
@@ -162,18 +155,7 @@ def opacity_pop(
     widget: QWidget, *, from_: float = 0.6, to: float = 1.0, duration_ms: int = FAST
 ) -> None:
     """Flash opacity up - used for token stream / typing feedback."""
-    effect = widget.graphicsEffect()
-    if not isinstance(effect, QGraphicsOpacityEffect):
-        effect = QGraphicsOpacityEffect(widget)
-        widget.setGraphicsEffect(effect)
-    effect.setOpacity(from_)
-    anim = QPropertyAnimation(effect, b"opacity", widget)
-    anim.setStartValue(from_)
-    anim.setEndValue(to)
-    anim.setDuration(duration_ms)
-    anim.setEasingCurve(decel())
-    _keep(widget, anim)
-    anim.start()
+    pass
 
 
 # ── cross-fade label text ─────────────────────────────────────────────────────
@@ -182,34 +164,8 @@ def opacity_pop(
 def crossfade_label(
     widget: QWidget, new_text: str, setter: Callable[[str], None], *, duration_ms: int = FAST
 ) -> None:
-    """Fade out, swap text, fade in - for status / info labels."""
-    effect = widget.graphicsEffect()
-    if not isinstance(effect, QGraphicsOpacityEffect):
-        effect = QGraphicsOpacityEffect(widget)
-        widget.setGraphicsEffect(effect)
-
-    seq = QSequentialAnimationGroup(widget)
-
-    fade_out = QPropertyAnimation(effect, b"opacity", seq)
-    fade_out.setStartValue(1.0)
-    fade_out.setEndValue(0.0)
-    fade_out.setDuration(duration_ms // 2)
-    fade_out.setEasingCurve(accel_decel())
-
-    fade_in = QPropertyAnimation(effect, b"opacity", seq)
-    fade_in.setStartValue(0.0)
-    fade_in.setEndValue(1.0)
-    fade_in.setDuration(duration_ms // 2)
-    fade_in.setEasingCurve(decel())
-
-    seq.addAnimation(fade_out)
-    seq.addAnimation(fade_in)
-
-    # swap text at the midpoint
-    fade_out.finished.connect(lambda: setter(new_text))
-
-    _keep(widget, seq)
-    seq.start()
+    """Swap label text immediately."""
+    setter(new_text)
 
 
 # ── color morph (background via QVariantAnimation + stylesheet) ───────────────
@@ -245,7 +201,7 @@ def morph_bg(widget: QWidget, from_hex: str, to_hex: str, *, duration_ms: int = 
 def viewport_flash(widget: QWidget, *, duration_ms: int = BASE) -> None:
     orig = widget.styleSheet()
     widget.setStyleSheet(orig + "\nbackground-color: rgba(36, 91, 219, 0.12);")
-    QTimer.singleShot(duration_ms, lambda: widget.setStyleSheet(orig))
+    QTimer.singleShot(duration_ms, partial(widget.setStyleSheet, orig))
 
 
 # ── graphics-item helpers ─────────────────────────────────────────────────────
@@ -346,6 +302,10 @@ def pulse_graphics_item(item: QGraphicsObject, *, peak_scale: float = 1.035) -> 
     anim.setEndValue(1.0)
     anim.setDuration(BASE)
     anim.setEasingCurve(decel())
-    anim.valueChanged.connect(lambda v: item.setScale(float(v)))
+    anim.valueChanged.connect(partial(_apply_scale, item))
     _keep(item, anim)
     anim.start()
+
+
+def _apply_scale(item: QGraphicsObject, v: float) -> None:
+    item.setScale(float(v))

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import partial
 from typing import Any, Dict, List, Optional
 
 from PySide6.QtCore import Signal
@@ -34,12 +35,12 @@ class SearchPanel(QWidget):
         self._search_btn = QPushButton("Search")
         self._search_btn.setObjectName("primaryButton")
         self._search_btn.setFixedWidth(80)
-        self._search_btn.clicked.connect(lambda: self._switch_mode("search"))
+        self._search_btn.clicked.connect(partial(self._switch_mode, "search"))
         tab_layout.addWidget(self._search_btn)
 
         self._replace_btn = QPushButton("Replace")
         self._replace_btn.setFixedWidth(80)
-        self._replace_btn.clicked.connect(lambda: self._switch_mode("replace"))
+        self._replace_btn.clicked.connect(partial(self._switch_mode, "replace"))
         tab_layout.addWidget(self._replace_btn)
 
         tab_layout.addStretch()

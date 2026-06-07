@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import partial
 from typing import Optional
 
 from PySide6.QtCore import QVariantAnimation
@@ -127,15 +128,14 @@ class StatusBar(QStatusBar):
         anim.setEndValue(ms)
         anim.setDuration(min(int(ms * 0.8), 900))
         anim.setEasingCurve(accel_decel())
-
-        def _tick(v: float) -> None:
-            val = float(v)
-            if val < 1000:
-                self._time_label.setText(f"Time: {val:.0f}ms")
-            else:
-                self._time_label.setText(f"Time: {val / 1000:.2f}s")
-
-        anim.valueChanged.connect(_tick)
+        anim.valueChanged.connect(partial(self._tick_execution_time, ms))
         _keep(self, anim)
         self._countup_anim = anim
         anim.start()
+
+    def _tick_execution_time(self, end_ms: float, v: float) -> None:
+        val = float(v)
+        if val < 1000:
+            self._time_label.setText(f"Time: {val:.0f}ms")
+        else:
+            self._time_label.setText(f"Time: {val / 1000:.2f}s")

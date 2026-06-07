@@ -72,7 +72,14 @@ class ChartPanel(QWidget):
 
         layout.addWidget(toolbar)
 
-        pg.setConfigOptions(background="#ffffff", foreground="#1a1a1a")
+        pg.setConfigOptions(
+            background="#ffffff",
+            foreground="#1a1a1a",
+            useOpenGL=False,
+            enableExperimental=False,
+            exitCleanup=False,
+            antialias=False,
+        )
 
         self._plot_widget = pg.PlotWidget()
         self._plot_widget.setLabel("left", "Value")
@@ -195,7 +202,11 @@ class ChartPanel(QWidget):
             color = _PALETTE_HEX[i % len(_PALETTE_HEX)]
             offset = (i - (len(y_multi) - 1) / 2) * 0.18
             bg = pg.BarGraphItem(
-                x=[v + offset for v in x_num], height=y, width=0.14, brush=color, pen=color
+                x=[v + offset for v in x_num],
+                height=y,
+                width=0.14,
+                brush=pg.mkBrush(color),
+                pen=pg.mkPen(color),
             )
             self._plot_widget.addItem(bg)
         self._plot_widget.getAxis("bottom").setTicks([list(enumerate(x))])
@@ -233,11 +244,13 @@ class ChartPanel(QWidget):
         if color_col and color_col in self._df.columns:
             cvals = self._df[color_col].to_list()
             unique = sorted(set(c for c in cvals if c is not None))
-            cmap = {v: _PALETTE_HEX[i % len(_PALETTE_HEX)] for i, v in enumerate(unique)}
-            colors = [cmap.get(v, _ACCENT) for v in cvals]
+            cmap = {
+                v: pg.mkBrush(_PALETTE_HEX[i % len(_PALETTE_HEX)]) for i, v in enumerate(unique)
+            }
+            brushes = [cmap.get(v, pg.mkBrush(_ACCENT)) for v in cvals]
         else:
-            colors = _ACCENT  # type: ignore[assignment]
-        scatter = pg.ScatterPlotItem(x, y, pen=None, brush=colors, size=8)
+            brushes = pg.mkBrush(_ACCENT)  # type: ignore[assignment]
+        scatter = pg.ScatterPlotItem(x, y, pen=None, brush=brushes, size=8)
         self._plot_widget.addItem(scatter)
         self._plot_widget.setLabel("bottom", x_col)
         self._plot_widget.setLabel("left", y_col)

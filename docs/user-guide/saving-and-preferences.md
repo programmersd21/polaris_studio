@@ -128,6 +128,7 @@ Open settings with **Ctrl+,** or **Edit → Settings**. Settings are saved autom
 |---|---|---|
 | Theme | Light | Changes the colour scheme. Options: Light, Dark, High Contrast. |
 | Font size | 11 | Base UI font size in points. Affects panels, menus, the node palette, and status bar. |
+| Show intro splash | On | Plays the centered Polaris Studio intro animation when the app opens. Turn this off to start straight at the workspace. |
 | Language | System | UI language (future; currently English only). |
 | Auto-save interval | 5 min | How often Polaris auto-saves to the recovery folder. Set to 0 to disable. |
 | Confirm before delete | On | Show a confirmation dialog before deleting nodes or clearing the graph. |

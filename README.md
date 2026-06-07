@@ -1,136 +1,109 @@
 # Polaris Studio
 
-**A local-first, AI-native data IDE. Visual pipelines, a live spreadsheet, and an assistant that actually does the work.**
+Polaris Studio is a desktop app for working with data. You build a pipeline by drawing a graph: each step is a node, lines between them show the flow. Load a file, filter rows, join two tables, draw a chart. The app runs the graph and shows you the result in a spreadsheet.
 
-Polaris Studio lets you load, clean, transform, join, analyze, visualize, and export data by drawing a graph. Every step in your pipeline is a node you can see, move, and edit. When you don't feel like building by hand, ask the AI assistant in plain English and it will propose the exact nodes and connections. You review the plan, click Apply, and the graph updates.
+There is also a built-in AI assistant. Tell it what you want in plain English, and it suggests the nodes and connections for you. You approve the plan before anything changes. The AI is optional. Everything else works without it.
 
-Everything runs on your machine. No accounts, no telemetry, no cloud round-trips. The AI is optional and only talks to the model provider you configure (Google Gemini).
+Your data stays on your computer. There are no accounts, no telemetry, and no required cloud services. The only network call the app makes is to the AI provider, and only if you turn the AI on and add your own API key.
 
 ![Polaris Studio](image.png)
 
----
+## What it can do
 
-## What you can do with it
-
-- **Load data** from CSV, Excel (XLSX), Parquet, or JSON files, or paste straight from your clipboard.
-- **Clean and transform** with visual nodes: filter rows, rename columns, cast types, fill nulls, deduplicate, parse dates, slice, sample.
-- **Reshape** with pivot, unpivot, explode, group-by-aggregate, and rolling windows.
-- **Join datasets** side-by-side with inner, left, right, full outer, cross, and anti joins.
-- **Visualize** with bar, line, scatter, histogram, box, and heatmap charts.
-- **Export** back to CSV, Excel, Parquet, or JSON.
-- **Use a live spreadsheet** that stays in sync with your pipeline - edit cells, sort columns, freeze rows, see column statistics.
-- **Ask the AI** to build or modify your pipeline in plain English, and review every change before it touches your data.
-- **Save your work** as a `.polaris` file and reopen it exactly as you left it.
-
----
+- Load CSV, Excel, Parquet, and JSON files. Paste from the clipboard.
+- Transform data with visual nodes: filter, sort, rename, cast, fill, dedupe, parse dates, sample.
+- Reshape with pivot, unpivot, group-by, and rolling windows.
+- Join tables with inner, left, right, full, and anti joins.
+- Make bar, line, scatter, histogram, box, and heatmap charts.
+- Export the result back to CSV, Excel, Parquet, or JSON.
+- Edit results in a live spreadsheet with sorting, frozen rows, and column statistics.
+- Ask the AI to build or change the pipeline, then review each change before it runs.
+- Save your work as a `.polaris` file and open it again later in the same state.
 
 ## Quick start
 
-### Install and run
+Install with pip and run:
 
 ```bash
-# 1. Get the code
 git clone https://github.com/programmersd21/polaris_studio
 cd polaris_studio
-
-# 2. Install (editable mode for development)
-pip install -e .
-
-# 3. Launch
-polaris-studio
+pip install -r requirements.txt
+python -m polaris_studio
 ```
 
-If you'd rather not install:
+If you prefer an editable install (recommended for development):
 
 ```bash
-pip install -r requirements.txt
-python src/polaris_studio/main.py
+pip install -e .
+polaris-studio
 ```
 
 **Requirements:** Python 3.11 or newer. Windows, macOS, and Linux are all supported.
 
-> **First run on Windows** may take a few extra seconds while Windows Defender scans the bundled Polars and PyArrow native libraries. This only happens once.
+> The first launch on Windows can be slow while Windows Defender scans the bundled Polars and PyArrow native libraries. This only happens once.
 
----
+## What it looks like
+
+When you open Polaris Studio, a short intro plays: the app icon and the name fade in centered on screen, hold for a moment, then settle into the top toolbar. You can turn this intro off in **Settings** under **Appearance** if you prefer to start straight at the workspace.
 
 ## Documentation
 
-Polaris Studio has a complete documentation set. Pick the path that fits your goal.
+The full documentation is in the `docs/` folder.
 
-### I just installed it - show me around
-- **[Installation](docs/getting-started/installation.md)** - detailed setup for Windows, macOS, and Linux
-- **[10-minute quick tour](docs/getting-started/quick-tour.md)** - see what Polaris can do
-- **[Your first pipeline](docs/getting-started/first-pipeline.md)** - step-by-step: load a file, filter, chart, export
-- **[Interface tour](docs/getting-started/interface-tour.md)** - every panel, button, and mode explained
-- **[Keyboard shortcuts](docs/getting-started/keyboard-shortcuts.md)** - full shortcut reference
+### If you are new
 
-### I want to actually use it
-- **[Core concepts](docs/user-guide/concepts.md)** - nodes, connections, dirty propagation, caching
-- **[The graph canvas](docs/user-guide/canvas.md)** - pan, zoom, select, layout
-- **[The panels](docs/user-guide/panels.md)** - node palette, properties, AI, chart, profile, search
-- **[The AI assistant](docs/user-guide/ai-panel.md)** - chat, previews, auto-approve, safety
-- **[The spreadsheet](docs/user-guide/spreadsheet.md)** - grid, formula bar, sorting, freezing, stats
-- **[Charts](docs/user-guide/charts.md)** - bar, line, scatter, histogram, box, heatmap; export to PNG/SVG
-- **[Command palette](docs/user-guide/command-palette.md)** - Ctrl+P, the keyboard-first launcher
-- **[Saving and preferences](docs/user-guide/saving-and-preferences.md)** - `.polaris` files, settings, AI keys
+- [Installation](docs/getting-started/installation.md) covers Windows, macOS, and Linux in detail.
+- [10-minute quick tour](docs/getting-started/quick-tour.md) shows the main features in a few minutes.
+- [Your first pipeline](docs/getting-started/first-pipeline.md) walks you through loading a file, filtering it, and making a chart.
+- [Interface tour](docs/getting-started/interface-tour.md) explains every panel and button.
+- [Keyboard shortcuts](docs/getting-started/keyboard-shortcuts.md) is a complete shortcut reference.
 
-### I need a specific node
-- **[Node reference](docs/nodes/reference.md)** - every node type, what it does, every parameter
+### If you want to use it for real work
 
-### I'm a developer
-- **[Developer setup](docs/developer/setup.md)** - repo, dev install, IDE config
-- **[Testing](docs/developer/testing.md)** - pytest, mypy, ruff
-- **[Adding a new node type](docs/developer/adding-a-node.md)** - registry, handler, palette, properties
-- **[API reference](docs/developer/api-reference.md)** - public classes and methods
+- [Core concepts](docs/user-guide/concepts.md) explains nodes, connections, caching, and the difference between data and metadata.
+- [The graph canvas](docs/user-guide/canvas.md) covers pan, zoom, selection, copying, and layout.
+- [The panels](docs/user-guide/panels.md) describes every panel in the app.
+- [The AI assistant](docs/user-guide/ai-panel.md) explains how the chat, preview cards, and approvals work.
+- [The spreadsheet](docs/user-guide/spreadsheet.md) covers the live grid, formula bar, and column stats.
+- [Charts](docs/user-guide/charts.md) covers the six chart types and how to export them.
+- [Command palette](docs/user-guide/command-palette.md) covers the keyboard-first launcher (Ctrl+P).
+- [Saving and preferences](docs/user-guide/saving-and-preferences.md) covers `.polaris` files, settings, and AI keys.
 
-### I want to understand how it works
-- **[Architecture overview](docs/architecture/overview.md)** - layers, principles, data flow
-- **[Graph engine](docs/architecture/graph-engine.md)** - DAG execution, caching, dirty propagation
-- **[AI pipeline](docs/architecture/ai.md)** - schema-validated commands, self-correction
-- **[State management](docs/architecture/state.md)** - AppState, Workspace, history
-- **[IPC layer](docs/architecture/ipc.md)** - multi-process compute, Arrow transport
-- **[Design system](docs/reference/design-system.md)** - typography, palette, motion
+### If you need a specific node
 
-### Something is broken
-- **[Common issues](docs/troubleshooting/common-issues.md)** - fonts, AI keys, slow imports
-- **[FAQ](docs/troubleshooting/faq.md)** - short answers to frequent questions
+- [Node reference](docs/nodes/reference.md) lists every node type, its parameters, and an example.
 
----
+### If you are a developer
 
-## Highlights
+- [Developer setup](docs/developer/setup.md) covers the repo, dev install, and IDE config.
+- [Testing](docs/developer/testing.md) covers pytest, mypy, and ruff.
+- [Adding a new node type](docs/developer/adding-a-node.md) is the most common kind of contribution, and walks you through it end to end.
+- [API reference](docs/developer/api-reference.md) lists the public classes and methods.
 
-### Visual pipelines
-Every operation - loading a file, filtering rows, joining tables - is a node. Drag nodes from the left palette onto the canvas, connect their ports, and hit **F5** to run. The result flows through the pipeline automatically. Downstream nodes are smart: if you change a filter, only what's downstream is recomputed; everything upstream stays cached.
+### If you want to understand how it works
 
-### Live spreadsheet
-A full spreadsheet sits below the graph. It shows the output of whatever node you last executed or previewed. Edit cells directly, sort columns, freeze the top row, right-click for column statistics, jump to the source node. The grid is virtualised, so it stays responsive past a million rows.
+- [Architecture overview](docs/architecture/overview.md) describes the layers and how data flows through them.
+- [Graph engine](docs/architecture/graph-engine.md) covers the DAG, caching, and dirty propagation.
+- [AI pipeline](docs/architecture/ai.md) covers the schema-validated commands and error recovery.
+- [State management](docs/architecture/state.md) covers AppState, Workspace, and the undo/redo stack.
+- [IPC layer](docs/architecture/ipc.md) covers the multi-process compute and Arrow transport.
+- [Design system](docs/reference/design-system.md) covers typography, palette, and motion.
 
-### AI assistant
-Press **Ctrl+Shift+A** to open the AI panel. Type in plain English: *"Add a column that multiplies price by quantity and call it revenue, then filter where revenue > 10000."* The AI proposes a structured action plan as JSON, validated against strict typed schemas, and shown to you as a preview card with **Apply** and **Skip** buttons. The AI never gets to touch your data directly - every action goes through the same validation and execution path as a manual edit.
+### If something is broken
 
-### 40+ node types
-Sources, transforms, aggregations, joins, sorts, charts, and outputs. All the building blocks you need for real data work, plus a few nice extras like a `cross_tab_ref` node for referencing another tab's output, a `manual_entry` node for typing a table by hand, and a `clipboard_paste` node for grabbing data straight from Excel or Google Sheets.
+- [Common issues](docs/troubleshooting/common-issues.md) covers fonts, AI keys, and slow startup.
+- [FAQ](docs/troubleshooting/faq.md) is a short list of frequent questions.
 
-### Multi-tab workspace
-Each tab holds its own independent graph. Reference another tab's output with a `cross_tab_ref` node. Save all tabs to a single `.polaris` JSON file and reopen them exactly as you left them.
+## How it is built
 
-### 100% offline (except AI)
-Zero network calls on startup. The only outbound traffic is to the AI provider you configure (Google Gemini, your own API key). No accounts, no telemetry, no "call home".
-
----
-
-## Tech stack
-
-| Layer | What | Why |
+| Part | What it is | Why |
 |---|---|---|
-| Engine | Polars on Apache Arrow | Fast columnar compute, lazy evaluation, predictable memory |
-| Graph editor | PySide6 `QGraphicsView` | Hardware-accelerated, custom-rendered, minimal overhead |
+| Engine | Polars on Apache Arrow | Fast columnar compute, predictable memory |
+| Graph editor | PySide6 `QGraphicsView` | Hardware-accelerated, custom-rendered |
 | Spreadsheet | Qt `QAbstractTableModel` | Virtualised rows, smooth scroll past a million rows |
 | AI | Google Gemini (via official SDK) | Streaming, structured output, your own key |
-| Compute | Multi-process worker | Heavy jobs never block the UI |
+| Compute | Multi-process worker | Heavy jobs do not block the UI |
 | Transport | Arrow IPC + JSON | Zero-copy DataFrame handoff between processes |
-
----
 
 ## Project layout
 
@@ -147,31 +120,25 @@ polaris_studio/
 │   └── __main__.py     # GUI entry point
 ├── assets/theme.qss    # Global stylesheet
 ├── fonts/              # Bundled Inter, Outfit, Instrument Serif, JetBrains Mono
-├── tests/              # 50+ pytest tests
-└── docs/               # You are here
+├── tests/              # pytest tests
+└── docs/               # The full documentation
 ```
-
----
 
 ## Development
 
 ```bash
 pip install -e ".[dev]"
-pytest                    # run tests
+pytest                    # run the test suite
 mypy .                    # type check
 ruff check src/           # lint
 ```
 
-See **[Developer setup](docs/developer/setup.md)** and **[Adding a new node type](docs/developer/adding-a-node.md)** for the full guide.
-
----
+See [Developer setup](docs/developer/setup.md) for the full guide.
 
 ## Contributing
 
-Bug reports, feature requests, and pull requests are welcome. Read **[CONTRIBUTING.md](CONTRIBUTING.md)** for the workflow and **[Adding a new node type](docs/developer/adding-a-node.md)** for the most common type of contribution.
-
----
+Bug reports, feature requests, and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow.
 
 ## License
 
-MIT - free to use, modify, and distribute.
+MIT. Free to use, modify, and distribute.

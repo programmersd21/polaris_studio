@@ -12,6 +12,7 @@ Micro-interactions:
 from __future__ import annotations
 
 import json
+from functools import partial
 from typing import Optional
 
 from PySide6.QtCore import Qt, QTimer, QVariantAnimation, Signal
@@ -41,6 +42,11 @@ from polaris_studio.ui.theme import (
     font_mono,
     font_outfit,
 )
+
+
+def _set_bar_value(bar, v):
+    bar.setValue(int(v))
+
 
 # ── Animated send button ──────────────────────────────────────────────────────
 
@@ -134,7 +140,7 @@ class _SendButton(QPushButton):
     def _squeeze(self) -> None:
         base = self.styleSheet()
         self.setStyleSheet(base + "\ncolor: rgba(255,255,255,0.7);")
-        QTimer.singleShot(60, lambda: self.setStyleSheet(base))
+        QTimer.singleShot(60, partial(self.setStyleSheet, base))
 
     def _spring_back(self) -> None:
         pass
@@ -369,14 +375,14 @@ class ActionPreviewCard(QFrame):
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(8)
         apply_btn = _CardButton("Apply", accent=True)
-        apply_btn.clicked.connect(lambda: self.apply_clicked.emit(self._batch))
+        apply_btn.clicked.connect(partial(self.apply_clicked.emit, self._batch))
         apply_btn.setEnabled(not auto_approved)
         if auto_approved:
             apply_btn.setText("Applied automatically")
         btn_layout.addWidget(apply_btn)
 
         skip_btn = _CardButton("Skip")
-        skip_btn.clicked.connect(lambda: self.reject_clicked.emit(self._batch))
+        skip_btn.clicked.connect(partial(self.reject_clicked.emit, self._batch))
         skip_btn.setEnabled(not auto_approved)
         btn_layout.addWidget(skip_btn)
         btn_layout.addStretch()
@@ -482,7 +488,7 @@ class _CardButton(QPushButton):
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event) -> None:
-        QTimer.singleShot(55, lambda: self.setStyleSheet(self._BASE_SS))
+        QTimer.singleShot(55, partial(self.setStyleSheet, self._BASE_SS))
         super().mouseReleaseEvent(event)
 
 
@@ -579,8 +585,8 @@ class AIPanel(QWidget):
             auto_approved=self._auto_approve_enabled if auto_approved is None else auto_approved,
             show_json=self._show_action_json,
         )
-        card.apply_clicked.connect(lambda b: self.apply_batch_clicked.emit(b))
-        card.reject_clicked.connect(lambda b: self.reject_batch_clicked.emit(b))
+        card.apply_clicked.connect(self.apply_batch_clicked)
+        card.reject_clicked.connect(self.reject_batch_clicked)
         self._add_widget(card)
         self._current_action_card = card
 
@@ -648,7 +654,7 @@ class AIPanel(QWidget):
                 border-color: {PALETTE.border_strong};
             }}
         """)
-        settings_btn.clicked.connect(self.settings_clicked.emit)
+        settings_btn.clicked.connect(self.settings_clicked)
         layout.addWidget(settings_btn)
         return container
 
@@ -729,6 +735,6 @@ class AIPanel(QWidget):
         anim.setEndValue(target)
         anim.setDuration(280)
         anim.setEasingCurve(accel_decel())
-        anim.valueChanged.connect(lambda v: bar.setValue(int(v)))
+        anim.valueChanged.connect(partial(_set_bar_value, bar))
         _keep(self, anim)
         anim.start()

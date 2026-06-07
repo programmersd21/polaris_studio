@@ -138,10 +138,10 @@ class Engine:
             "box_chart": self._exec_box_chart,
             "heatmap": self._exec_heatmap,
             "table_output": self._exec_noop,
-            "export_csv": self._exec_noop,
-            "export_parquet": self._exec_noop,
-            "export_json": self._exec_noop,
-            "export_xlsx": self._exec_noop,
+            "export_csv": self._exec_export_csv,
+            "export_parquet": self._exec_export_parquet,
+            "export_json": self._exec_export_json,
+            "export_xlsx": self._exec_export_xlsx,
         }
         handler = dispatch.get(node.node_type)
         if handler is None:
@@ -556,6 +556,52 @@ class Engine:
             raise ExecutionError(f"Heatmap: column '{y_col}' not found")
         if val_col and val_col not in df.columns:
             raise ExecutionError(f"Heatmap: column '{val_col}' not found")
+        return df
+
+    def _exec_export_csv(self, graph: WorkflowGraph, node: Node) -> pl.DataFrame:
+        df = self._get_input_df(graph, node)
+        path = node.params.get("file_path", "")
+        if not path:
+            raise ExecutionError("Export CSV: no file path specified")
+        delimiter = node.params.get("delimiter", ",")
+        include_header = node.params.get("include_header", True)
+        df.write_csv(path, separator=delimiter, include_header=include_header)
+        return df
+
+    def _exec_export_parquet(self, graph: WorkflowGraph, node: Node) -> pl.DataFrame:
+        df = self._get_input_df(graph, node)
+        path = node.params.get("file_path", "")
+        if not path:
+            raise ExecutionError("Export Parquet: no file path specified")
+        compression = node.params.get("compression", "snappy")
+        if compression == "uncompressed":
+            compression = None
+        df.write_parquet(path, compression=compression)
+        return df
+
+    def _exec_export_json(self, graph: WorkflowGraph, node: Node) -> pl.DataFrame:
+        df = self._get_input_df(graph, node)
+        path = node.params.get("file_path", "")
+        if not path:
+            raise ExecutionError("Export JSON: no file path specified")
+        orient = node.params.get("orient", "records")
+        if orient == "records":
+            df.write_ndjson(path)
+        else:
+            lines = df.write_json()
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(lines)
+        return df
+
+    def _exec_export_xlsx(self, graph: WorkflowGraph, node: Node) -> pl.DataFrame:
+        df = self._get_input_df(graph, node)
+        path = node.params.get("file_path", "")
+        if not path:
+            raise ExecutionError("Export XLSX: no file path specified")
+        sheet_name = node.params.get("sheet_name", "Sheet1")
+        from polaris_studio.io.xlsx_handler import XlsxHandler
+
+        XlsxHandler.write(df, path, sheet_name=sheet_name)
         return df
 
     def _exec_noop(self, graph: WorkflowGraph, node: Node) -> pl.DataFrame:

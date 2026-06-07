@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import partial
 from typing import Optional
 
 from PySide6.QtCore import QMimeData, QPoint, QSize, Qt, QTimer, Signal
@@ -52,7 +53,7 @@ class NodeTree(QTreeWidget):
     def mouseReleaseEvent(self, event) -> None:
         orig: Optional[str] = getattr(self, "_orig_ss", None)
         if orig is not None:
-            QTimer.singleShot(55, lambda: self.setStyleSheet(orig))
+            QTimer.singleShot(55, partial(self.setStyleSheet, orig))
             self._orig_ss = ""
         super().mouseReleaseEvent(event)
 

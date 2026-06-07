@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import partial
 from typing import List, Optional
 
 from PySide6.QtCore import Qt, Signal
@@ -134,7 +135,7 @@ class RuleEditDialog(AnimatedDialog):
         self._min_color_btn.setStyleSheet(
             "background: #f5f5f5; border: 1px solid #d4d4d4; border-radius: 4px;"
         )
-        self._min_color_btn.clicked.connect(lambda: self._pick_color(self._min_color_btn))
+        self._min_color_btn.clicked.connect(partial(self._pick_color, self._min_color_btn))
         layout.addRow("Color:", self._min_color_btn)
 
         self._max_color_btn = QPushButton()
@@ -142,7 +143,7 @@ class RuleEditDialog(AnimatedDialog):
         self._max_color_btn.setStyleSheet(
             "background: #5b4bd6; border: 1px solid #d4d4d4; border-radius: 4px;"
         )
-        self._max_color_btn.clicked.connect(lambda: self._pick_color(self._max_color_btn))
+        self._max_color_btn.clicked.connect(partial(self._pick_color, self._max_color_btn))
         self._max_color_btn.setVisible(False)
         layout.addRow("Max Color:", self._max_color_btn)
 

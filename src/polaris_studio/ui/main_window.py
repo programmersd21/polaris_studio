@@ -90,12 +90,15 @@ class AsyncRunner(QThread):
 
 
 class PolarisMainWindow(QMainWindow):
-    def __init__(self) -> None:
+    def __init__(self, icon_path: str = "") -> None:
         super().__init__()
         install_crash_handler()
         sys.excepthook = self._global_excepthook
         self._settings_manager = QSettings("PolarisStudio", "PolarisStudio")
         self._view_mode = ViewMode.GRAPH
+        self._show_splash = bool(
+            str(self._settings_manager.value("startup/show_splash", "true")) == "true"
+        )
         self._workspace = Workspace()
         self._workspace.new_tab("Sheet1")
         self._app_state = AppState(self)
@@ -112,6 +115,7 @@ class PolarisMainWindow(QMainWindow):
         self._chat_session.set_command_context_provider(self._build_command_context)
         self._grid_model = PolarisGridModel()
         self._cell_delegate = PolarisDelegate()
+        self._icon_path = icon_path
 
         self.setWindowTitle("Polaris Studio")
         self.setMinimumSize(1280, 800)
@@ -129,7 +133,7 @@ class PolarisMainWindow(QMainWindow):
         self._app_state.graph_changed.connect(self._on_graph_changed)
         self._update_title()
         self._load_and_apply_settings()
-        QTimer.singleShot(0, self._run_launch_reveal)
+        QTimer.singleShot(0, self._run_intro)
 
     def _global_excepthook(self, exc_type, exc_value, exc_traceback) -> None:
         import traceback
@@ -141,6 +145,26 @@ class PolarisMainWindow(QMainWindow):
             pass
         print(msg, file=sys.stderr)
 
+    def _run_intro(self) -> None:
+        if self._icon_path and self._show_splash:
+            for widget in [
+                self.menuBar(),
+                self._node_palette_dock,
+                self._central_splitter,
+                self._properties_panel_dock,
+                self._ai_panel_dock,
+                self._status_bar,
+            ]:
+                widget.setVisible(False)
+
+            from polaris_studio.ui.splash import IntroOverlay
+
+            intro = IntroOverlay(self, self._icon_path, self._toolbar_logo, self._wordmark)
+            intro.animate_in()
+            QTimer.singleShot(4000, self._run_launch_reveal)
+        else:
+            self._run_launch_reveal()
+
     def _run_launch_reveal(self) -> None:
         reveal_targets = [
             self.menuBar(),
@@ -150,6 +174,8 @@ class PolarisMainWindow(QMainWindow):
             self._ai_panel_dock,
             self._status_bar,
         ]
+        for widget in reveal_targets:
+            widget.setVisible(True)
         for index, widget in enumerate(reveal_targets):
             fade_slide_in(
                 widget,
@@ -389,6 +415,7 @@ class PolarisMainWindow(QMainWindow):
         )
         self._wordmark.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
         toolbar.addWidget(self._wordmark)
+        self._toolbar_logo = logo
 
         sep_label = QLabel("|")
         sep_label.setStyleSheet(f"color: {PALETTE.border_strong}; padding: 0 4px;")
@@ -1387,6 +1414,11 @@ class PolarisMainWindow(QMainWindow):
             "appearance/theme", settings.get("theme", "Dark Glass (Default)")
         )
         self._settings_manager.setValue("appearance/font_size", settings.get("font_size", 11))
+        self._settings_manager.setValue(
+            "startup/show_splash",
+            "true" if settings.get("show_splash", True) else "false",
+        )
+        self._show_splash = bool(settings.get("show_splash", True))
         self._settings_manager.setValue("performance/worker_count", settings.get("worker_count", 2))
         self._settings_manager.setValue("performance/cache_size", settings.get("cache_size", 1024))
         self._settings_manager.setValue(
@@ -1417,6 +1449,8 @@ class PolarisMainWindow(QMainWindow):
             == "true",
             "theme": self._settings_manager.value("appearance/theme", "Dark Glass (Default)"),
             "font_size": int(str(self._settings_manager.value("appearance/font_size", 11))),
+            "show_splash": str(self._settings_manager.value("startup/show_splash", "true"))
+            == "true",
             "worker_count": int(str(self._settings_manager.value("performance/worker_count", 2))),
             "cache_size": int(str(self._settings_manager.value("performance/cache_size", 1024))),
             "auto_profile": str(self._settings_manager.value("performance/auto_profile", "true"))

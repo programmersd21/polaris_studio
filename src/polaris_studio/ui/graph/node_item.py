@@ -14,6 +14,7 @@ The node uses solid, layered fills with subtle drop-shadow and crisp borders.
 from __future__ import annotations
 
 from enum import Enum
+from functools import partial
 from typing import Any, Dict, List, Optional, Tuple
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
@@ -69,6 +70,10 @@ PORT_TOP_PADDING = 14
 BODY_PADDING = 12
 MIN_BODY_HEIGHT = 50
 SHADOW_BLUR = 24
+
+
+def _noop() -> None:
+    pass
 
 
 def _category_glyph(category: str) -> str:
@@ -229,20 +234,20 @@ class NodeItem(QGraphicsObject):
         menu = QMenu()
 
         execute = menu.addAction("Execute Node")
-        execute.triggered.connect(lambda: None)
+        execute.triggered.connect(_noop)
 
         preview = menu.addAction("Preview Output")
-        preview.triggered.connect(lambda: None)
+        preview.triggered.connect(_noop)
 
         menu.addSeparator()
 
         dup = menu.addAction("Duplicate")
-        dup.triggered.connect(lambda: self.node_duplicate_requested.emit(self._node.node_id))
+        dup.triggered.connect(partial(self.node_duplicate_requested.emit, self._node.node_id))
 
         menu.addSeparator()
 
         delete = menu.addAction("Delete")
-        delete.triggered.connect(lambda: self.node_delete_requested.emit(self._node.node_id))
+        delete.triggered.connect(partial(self.node_delete_requested.emit, self._node.node_id))
 
         menu.exec(event.screenPos())
 
@@ -260,6 +265,9 @@ class NodeItem(QGraphicsObject):
         self._dirty = dirty
         self.update()
 
+    def _restore_state_after_compute(self) -> None:
+        self._set_state(NodeState.SELECTED if self.isSelected() else NodeState.NORMAL)
+
     def set_computing(self, computing: bool) -> None:
         was_computing = self._is_computing
         self._is_computing = computing
@@ -271,12 +279,7 @@ class NodeItem(QGraphicsObject):
             if was_computing:
                 self._set_state(NodeState.SUCCESS)
                 pulse_graphics_item(self, peak_scale=1.035)
-                QTimer.singleShot(
-                    420,
-                    lambda: self._set_state(
-                        NodeState.SELECTED if self.isSelected() else NodeState.NORMAL
-                    ),
-                )
+                QTimer.singleShot(420, self._restore_state_after_compute)
         self.update()
 
     def set_error(self, error: bool, message: str = "") -> None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from functools import partial
 from typing import Any, Optional
 
 from PySide6.QtCore import Qt, Signal
@@ -201,7 +202,7 @@ class PropertiesPanel(QWidget):
         if pt == "string":
             inp = QLineEdit()
             inp.setText(str(value) if value is not None else "")
-            inp.textChanged.connect(lambda t: self._on_param_change(param.name, t))
+            inp.textChanged.connect(partial(self._on_param_change, param.name))
             return inp
 
         elif pt == "filepath":
@@ -210,10 +211,10 @@ class PropertiesPanel(QWidget):
             layout.setContentsMargins(0, 0, 0, 0)
             inp = QLineEdit()
             inp.setText(str(value) if value is not None else "")
-            inp.textChanged.connect(lambda t: self._on_param_change(param.name, t))
+            inp.textChanged.connect(partial(self._on_param_change, param.name))
             btn = QPushButton("...")
             btn.setFixedWidth(32)
-            btn.clicked.connect(lambda: self._browse_file(inp))
+            btn.clicked.connect(partial(self._browse_file, inp))
             layout.addWidget(inp, 1)
             layout.addWidget(btn)
             return container
@@ -221,7 +222,7 @@ class PropertiesPanel(QWidget):
         elif pt == "bool":
             cb = QCheckBox()
             cb.setChecked(bool(value) if value is not None else False)
-            cb.toggled.connect(lambda b: self._on_param_change(param.name, b))
+            cb.toggled.connect(partial(self._on_param_change, param.name))
             return cb
 
         elif pt == "enum":
@@ -230,21 +231,21 @@ class PropertiesPanel(QWidget):
                 combo.addItems(param.options)
             if value and str(value) in (param.options or []):
                 combo.setCurrentText(str(value))
-            combo.currentTextChanged.connect(lambda t: self._on_param_change(param.name, t))
+            combo.currentTextChanged.connect(partial(self._on_param_change, param.name))
             return combo
 
         elif pt == "integer":
             spin = QSpinBox()
             spin.setRange(-999999999, 999999999)
             spin.setValue(int(value) if value is not None else 0)
-            spin.valueChanged.connect(lambda v: self._on_param_change(param.name, v))
+            spin.valueChanged.connect(partial(self._on_param_change, param.name))
             return spin
 
         elif pt == "float":
             dspin = QDoubleSpinBox()
             dspin.setRange(-999999999.0, 999999999.0)
             dspin.setValue(float(value) if value is not None else 0.0)
-            dspin.valueChanged.connect(lambda v: self._on_param_change(param.name, v))
+            dspin.valueChanged.connect(partial(self._on_param_change, param.name))
             return dspin
 
         elif pt == "column_single":
@@ -252,7 +253,7 @@ class PropertiesPanel(QWidget):
             combo.setEditable(True)
             if value:
                 combo.setCurrentText(str(value))
-            combo.currentTextChanged.connect(lambda t: self._on_param_change(param.name, t))
+            combo.currentTextChanged.connect(partial(self._on_param_change, param.name))
             return combo
 
         elif pt == "column_multi":
@@ -263,12 +264,7 @@ class PropertiesPanel(QWidget):
                     item = QListWidgetItem(str(v))
                     item.setSelected(True)
                     lst.addItem(item)
-            lst.itemChanged.connect(
-                lambda: self._on_param_change(
-                    param.name,
-                    [lst.item(i).text() for i in range(lst.count()) if lst.item(i).isSelected()],
-                )
-            )
+            lst.itemChanged.connect(partial(self._on_multi_column_changed, param.name, lst))
             return lst
 
         elif pt == "expression":
@@ -278,7 +274,7 @@ class PropertiesPanel(QWidget):
             font = QFont("JetBrains Mono", 10)
             font.setFamilies(["JetBrains Mono", "Inter"])
             inp.setFont(font)
-            inp.textChanged.connect(lambda t: self._on_param_change(param.name, t))
+            inp.textChanged.connect(partial(self._on_param_change, param.name))
             return inp
 
         # Fallback for unknown param types: create a generic text editor
@@ -288,8 +284,14 @@ class PropertiesPanel(QWidget):
         inp = QLineEdit()
         inp.setText(str(value) if value is not None else "")
         inp.setPlaceholderText(f"[{pt}] Enter value")
-        inp.textChanged.connect(lambda t: self._on_param_change(param.name, t))
+        inp.textChanged.connect(partial(self._on_param_change, param.name))
         return inp
+
+    def _on_multi_column_changed(self, name: str, lst: QListWidget) -> None:
+        self._on_param_change(
+            name,
+            [lst.item(i).text() for i in range(lst.count()) if lst.item(i).isSelected()],
+        )
 
     def _on_param_change(self, key: str, value: Any) -> None:
         if self._updating or self._node is None:

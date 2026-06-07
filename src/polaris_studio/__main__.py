@@ -33,7 +33,7 @@ def main() -> None:
     app = QApplication(sys.argv)
     app.setApplicationName("Polaris Studio")
     app.setOrganizationName("Polaris")
-    app.setApplicationVersion("1.0.0")
+    app.setApplicationVersion("1.0.1")
 
     load_fonts()
     apply_application_font(app)
@@ -50,7 +50,7 @@ def main() -> None:
     if stylesheet:
         app.setStyleSheet(stylesheet)
 
-    window = PolarisMainWindow()
+    window = PolarisMainWindow(icon_path)
     if os.path.exists(icon_path):
         window.setWindowIcon(QIcon(icon_path))
     window.show()
