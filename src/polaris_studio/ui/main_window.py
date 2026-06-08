@@ -442,9 +442,7 @@ class PolarisMainWindow(QMainWindow):
                 letter-spacing: 1.2px;
             }}
         """)
-        self._version_label.setAlignment(
-            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft
-        )
+        self._version_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
         toolbar.addWidget(self._version_label)
 
         sep_label = QLabel("|")
