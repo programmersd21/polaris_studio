@@ -1,4 +1,4 @@
-# Polaris Studio
+# 🎅 Polaris Studio
 
 Polaris Studio is a desktop app for working with data. You build a pipeline by drawing a graph: each step is a node, lines between them show the flow. Load a file, filter rows, join two tables, draw a chart. The app runs the graph and shows you the result in a spreadsheet.
 
@@ -15,7 +15,6 @@ Your data stays on your computer. There are no accounts, no telemetry, and no re
 - Reshape with pivot, unpivot, group-by, and rolling windows.
 - Join tables with inner, left, right, full, and anti joins.
 - Make bar, line, scatter, histogram, box, and heatmap charts.
-**(Experimental, in progress)**
 - Export the result back to CSV, Excel, Parquet, or JSON.
 - Edit results in a live spreadsheet with sorting, frozen rows, and column statistics.
 - Ask the AI to build or change the pipeline, then review each change before it runs.
