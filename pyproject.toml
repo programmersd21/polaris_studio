@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "polaris-studio"
-version = "1.0.1"
+version = "1.0.2"
 description = "A local-first, AI-native, node-powered data IDE"
 requires-python = ">=3.11"
 license = {text = "MIT"}
@@ -13,7 +13,7 @@ dependencies = [
     "polars>=1.0.0",
     "pyarrow>=16.0.0",
     "PySide6>=6.7.0",
-    "pyqtgraph==0.13.3",
+    "matplotlib>=3.8.0",
     "openpyxl>=3.1.0",
     "pydantic>=2.7.0",
     "google-genai>=1.0.0",
@@ -36,7 +36,7 @@ ignore_missing_imports = false
 disallow_untyped_defs = false
 
 [[tool.mypy.overrides]]
-module = ["openpyxl", "openpyxl.*", "pyqtgraph", "pyqtgraph.*"]
+module = ["openpyxl", "openpyxl.*", "matplotlib", "matplotlib.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

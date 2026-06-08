@@ -50,7 +50,7 @@ def main() -> None:
     app = QApplication(sys.argv)
     app.setApplicationName("Polaris Studio")
     app.setOrganizationName("Polaris")
-    app.setApplicationVersion("1.0.1")
+    app.setApplicationVersion("1.0.2")
 
     load_fonts()
     apply_application_font(app)

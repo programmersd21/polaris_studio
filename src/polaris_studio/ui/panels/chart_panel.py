@@ -4,16 +4,12 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 import polars as pl
-import pyqtgraph as pg
-import pyqtgraph.exporters as exporters
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
-    QGraphicsItem,
-    QGraphicsLineItem,
-    QGraphicsRectItem,
     QLabel,
     QPushButton,
     QToolBar,
@@ -23,7 +19,6 @@ from PySide6.QtWidgets import (
 
 from polaris_studio.ui.theme import PALETTE, RADII
 
-_ACCENT = "#7c6af7"
 _PALETTE_HEX = [
     "#7c6af7",
     "#3b82f6",
@@ -42,8 +37,6 @@ class ChartPanel(QWidget):
         self._df: Optional[pl.DataFrame] = None
         self._chart_type: str = "bar"
         self._node_params: Dict[str, Any] = {}
-        self._chart_items: List[QGraphicsItem] = []
-        self._chart_curves: List[Any] = []
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -76,25 +69,10 @@ class ChartPanel(QWidget):
 
         layout.addWidget(toolbar)
 
-        pg.setConfigOptions(
-            background="#ffffff",
-            foreground="#1a1a1a",
-            useOpenGL=False,
-            enableExperimental=False,
-            exitCleanup=False,
-            antialias=False,
-        )
-
-        self._plot_widget = pg.PlotWidget()
-        self._plot_widget.setLabel("left", "Value")
-        self._plot_widget.setLabel("bottom", "Index")
-        self._plot_widget.showGrid(x=True, y=True, alpha=0.1)
-        self._plot_widget.setStyleSheet("border: none;")
-        axis_font = QFont(self._plot_widget.font())
-        axis_font.setPointSize(max(1, axis_font.pointSize() or 10))
-        self._plot_widget.getAxis("bottom").setStyle(tickFont=axis_font)
-        self._plot_widget.getAxis("left").setStyle(tickFont=axis_font)
-        layout.addWidget(self._plot_widget, 1)
+        self._figure = Figure(figsize=(8, 6), facecolor='#ffffff')
+        self._canvas = FigureCanvasQTAgg(self._figure)
+        self._canvas.setStyleSheet("border: none;")
+        layout.addWidget(self._canvas, 1)
 
         self._no_data_label = QLabel("No data. Connect a node to see its chart.")
         self._no_data_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -104,7 +82,9 @@ class ChartPanel(QWidget):
     def update_data(self, df: pl.DataFrame) -> None:
         self._df = df
         self._no_data_label.setVisible(len(df) == 0)
-        self._render()
+        self._canvas.setVisible(len(df) > 0)
+        if len(df) > 0:
+            self._render()
 
     def set_chart_type(self, chart_type: str) -> None:
         display_map = {
@@ -129,8 +109,10 @@ class ChartPanel(QWidget):
     def clear(self) -> None:
         self._df = None
         self._node_params.clear()
-        self._plot_widget.clear()
+        self._figure.clear()
+        self._canvas.draw()
         self._no_data_label.setVisible(True)
+        self._canvas.setVisible(False)
 
     def _on_chart_type_change(self, chart_type: str) -> None:
         self._chart_type = chart_type.lower()
@@ -138,34 +120,33 @@ class ChartPanel(QWidget):
 
     def _render(self) -> None:
         if self._df is None or len(self._df) == 0:
-            self._plot_widget.clear()
-            self._chart_items.clear()
-            self._chart_curves.clear()
-            self._no_data_label.setVisible(True)
+            self._figure.clear()
+            self._canvas.draw()
             return
 
-        self._plot_widget.clear()
-        self._chart_items.clear()
-        self._chart_curves.clear()
-        self._no_data_label.setVisible(False)
-
+        self._figure.clear()
+        ax = self._figure.add_subplot(111)
+        
         try:
             if self._chart_type == "bar":
-                self._render_bar()
+                self._render_bar(ax)
             elif self._chart_type == "line":
-                self._render_line()
+                self._render_line(ax)
             elif self._chart_type == "scatter":
-                self._render_scatter()
+                self._render_scatter(ax)
             elif self._chart_type == "histogram":
-                self._render_histogram()
+                self._render_histogram(ax)
             elif self._chart_type == "box":
-                self._render_box()
+                self._render_box(ax)
             elif self._chart_type == "heatmap":
-                self._render_heatmap()
+                self._render_heatmap(ax)
+            
+            self._figure.tight_layout()
+            self._canvas.draw()
         except Exception as exc:
-            err_item = pg.TextItem(f"Chart error: {exc}", color="#f38ba8")
-            self._plot_widget.addItem(err_item)
-            self._chart_items.append(err_item)
+            ax.text(0.5, 0.5, f"Chart error: {exc}", ha='center', va='center', 
+                   transform=ax.transAxes, color='#f38ba8')
+            self._canvas.draw()
 
     def _pick_xy(self) -> tuple:
         cols = self._df.columns  # type: ignore[union-attr]
@@ -187,11 +168,8 @@ class ChartPanel(QWidget):
                 y_multi = cols[1:2] if len(cols) > 1 else cols[:1]
         return x_col, y_col, y_multi
 
-    def _pick_color(self) -> str:
-        return self._node_params.get("color_column", "")
-
     @staticmethod
-    def _to_numeric(vals: list) -> list:
+    def _to_numeric(vals: list) -> List[float]:
         result = []
         for v in vals:
             if v is not None:
@@ -201,97 +179,89 @@ class ChartPanel(QWidget):
                     pass
         return result
 
-    def _render_bar(self) -> None:
+    def _render_bar(self, ax) -> None:
         if self._df is None or self._df.is_empty():
             return
         x_col, y_col, y_multi = self._pick_xy()
         if not y_multi:
             y_multi = [y_col] if y_col else self._df.columns[1:2]
-        x = self._df[x_col].to_list()
-        x_num = list(range(len(x)))
-        bar_w = 0.7 / max(len(y_multi), 1)
+        
+        x_labels = [str(v) for v in self._df[x_col].to_list()]
+        x_positions = np.arange(len(x_labels))
+        bar_width = 0.7 / max(len(y_multi), 1)
+        
         for i, col in enumerate(y_multi):
-            y = self._to_numeric(self._df[col].to_list())
-            if not y:
+            y_vals = self._to_numeric(self._df[col].to_list())
+            if not y_vals:
                 continue
             color = _PALETTE_HEX[i % len(_PALETTE_HEX)]
-            offset = (i - (len(y_multi) - 1) / 2) * bar_w
-            pen = pg.mkPen(color)
-            brush = pg.mkBrush(color)
-            for xi, yi in zip(x_num, y):
-                rect = QGraphicsRectItem(xi + offset - bar_w / 2, 0, bar_w, float(yi))
-                rect.setPen(pen)
-                rect.setBrush(brush)
-                self._plot_widget.addItem(rect)
-                self._chart_items.append(rect)
-        self._plot_widget.getAxis("bottom").setTicks([list(enumerate(x))])
-        self._plot_widget.setLabel("bottom", x_col)
-        self._plot_widget.setLabel("left", ", ".join(y_multi))
+            offset = (i - (len(y_multi) - 1) / 2) * bar_width
+            ax.bar(x_positions + offset, y_vals, bar_width, label=col, color=color)
+        
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels(x_labels, rotation=45, ha='right')
+        ax.set_xlabel(x_col)
+        ax.set_ylabel(", ".join(y_multi))
+        if len(y_multi) > 1:
+            ax.legend()
 
-    def _render_line(self) -> None:
+    def _render_line(self, ax) -> None:
         if self._df is None or self._df.is_empty():
             return
         _, _, y_multi = self._pick_xy()
         x_col = self._node_params.get("x_column", "") or self._df.columns[0]
-        x = self._df[x_col].to_list() if x_col in self._df.columns else list(range(len(self._df)))
+        x_vals = self._to_numeric(self._df[x_col].to_list()) if x_col in self._df.columns else list(range(len(self._df)))
+        
         for i, col in enumerate(y_multi):
-            y = self._to_numeric(self._df[col].to_list())
-            if not y:
+            y_vals = self._to_numeric(self._df[col].to_list())
+            if not y_vals:
                 continue
             color = _PALETTE_HEX[i % len(_PALETTE_HEX)]
-            curve = self._plot_widget.plot(x, y, pen=pg.mkPen(color=color, width=2), name=col)
-            self._chart_curves.append(curve)
+            ax.plot(x_vals, y_vals, label=col, color=color, linewidth=2)
+        
+        ax.set_xlabel(x_col)
+        ax.set_ylabel("Value")
         if len(y_multi) > 1:
-            self._plot_widget.addLegend()
-        self._plot_widget.setLabel("bottom", x_col)
-        self._plot_widget.setLabel("left", "Value")
+            ax.legend()
 
-    def _render_scatter(self) -> None:
+    def _render_scatter(self, ax) -> None:
         if self._df is None or self._df.is_empty():
             return
         x_col, y_col, _ = self._pick_xy()
         if not y_col:
             y_col = self._df.columns[1] if len(self._df.columns) > 1 else self._df.columns[0]
-        x = self._to_numeric(self._df[x_col].to_list())
-        y = self._to_numeric(self._df[y_col].to_list())
-        if not x or not y:
+        
+        x_vals = self._to_numeric(self._df[x_col].to_list())
+        y_vals = self._to_numeric(self._df[y_col].to_list())
+        if not x_vals or not y_vals:
             return
-        color_col = self._pick_color()
+        
+        color_col = self._node_params.get("color_column", "")
         if color_col and color_col in self._df.columns:
-            cvals = self._df[color_col].to_list()
-            unique = sorted(set(c for c in cvals if c is not None))
-            cmap = {
-                v: pg.mkBrush(_PALETTE_HEX[i % len(_PALETTE_HEX)]) for i, v in enumerate(unique)
-            }
-            brushes = [cmap.get(v, pg.mkBrush(_ACCENT)) for v in cvals]
+            c_vals = self._df[color_col].to_list()
+            unique = sorted(set(c for c in c_vals if c is not None))
+            cmap = {v: _PALETTE_HEX[i % len(_PALETTE_HEX)] for i, v in enumerate(unique)}
+            colors = [cmap.get(v, _PALETTE_HEX[0]) for v in c_vals]
+            ax.scatter(x_vals, y_vals, c=colors, s=80, alpha=0.7)
         else:
-            brushes = pg.mkBrush(_ACCENT)  # type: ignore[assignment]
-        scatter = pg.ScatterPlotItem(x, y, pen=None, brush=brushes, size=8)
-        self._plot_widget.addItem(scatter)
-        self._chart_items.append(scatter)
-        self._plot_widget.setLabel("bottom", x_col)
-        self._plot_widget.setLabel("left", y_col)
+            ax.scatter(x_vals, y_vals, color=_PALETTE_HEX[0], s=80, alpha=0.7)
+        
+        ax.set_xlabel(x_col)
+        ax.set_ylabel(y_col)
 
-    def _render_histogram(self) -> None:
+    def _render_histogram(self, ax) -> None:
         if self._df is None or self._df.is_empty():
             return
         col = self._node_params.get("column", "") or self._df.columns[0]
         bins = int(self._node_params.get("bins", 20))
         data = self._df[col].drop_nulls().to_list()
-        y, x = np.histogram(data, bins=bins)
-        pen = pg.mkPen(_ACCENT)
-        brush = pg.mkBrush(_ACCENT)
-        bw = float(x[1] - x[0]) * 0.8
-        for xi, yi in zip(x[:-1], y):
-            rect = QGraphicsRectItem(float(xi) - bw / 2, 0, bw, float(yi))
-            rect.setPen(pen)
-            rect.setBrush(brush)
-            self._plot_widget.addItem(rect)
-            self._chart_items.append(rect)
-        self._plot_widget.setLabel("bottom", col)
-        self._plot_widget.setLabel("left", "Frequency")
+        data = self._to_numeric(data)
+        
+        ax.hist(data, bins=bins, color=_PALETTE_HEX[0], edgecolor='white', alpha=0.8)
+        ax.set_xlabel(col)
+        ax.set_ylabel("Frequency")
 
-    def _render_box(self) -> None:
+    def _render_box(self, ax) -> None:
         if self._df is None or self._df.is_empty():
             return
         cols_param = self._node_params.get("columns", [])
@@ -300,87 +270,54 @@ class ChartPanel(QWidget):
             cols_param = [c for c in self._df.columns if self._df[c].dtype in numeric_types][:5]
         if not cols_param:
             cols_param = self._df.columns[:5]
-        ticks = []
-        for i, col in enumerate(cols_param):
+        
+        data_to_plot = []
+        labels = []
+        for col in cols_param:
             if col not in self._df.columns:
                 continue
-            vals = self._df[col].drop_nulls().to_list()
-            vals = [float(v) for v in vals if v is not None]
-            if not vals:
-                continue
-            q1 = float(np.percentile(vals, 25))
-            med = float(np.percentile(vals, 50))
-            q3 = float(np.percentile(vals, 75))
-            lo = float(min(vals))
-            hi = float(max(vals))
-            ticks.append((i, col))
+            vals = self._to_numeric(self._df[col].drop_nulls().to_list())
+            if vals:
+                data_to_plot.append(vals)
+                labels.append(col)
+        
+        if data_to_plot:
+            bp = ax.boxplot(data_to_plot, labels=labels, patch_artist=True)
+            for patch, color in zip(bp['boxes'], _PALETTE_HEX):
+                patch.set_facecolor(color)
+                patch.set_alpha(0.7)
+            ax.set_ylabel("Value")
+            ax.tick_params(axis='x', rotation=45)
 
-            box = QGraphicsRectItem(i - 0.25, q1, 0.5, max(q3 - q1, 1e-9))
-            box.setPen(pg.mkPen(_ACCENT, width=2))
-            box.setBrush(pg.mkBrush(124, 106, 247, 80))
-            self._plot_widget.addItem(box)
-            self._chart_items.append(box)
-
-            whisker_low = QGraphicsLineItem(i, lo, i, q1)
-            whisker_low.setPen(pg.mkPen(_ACCENT, width=1.5))
-            self._plot_widget.addItem(whisker_low)
-            self._chart_items.append(whisker_low)
-
-            whisker_high = QGraphicsLineItem(i, q3, i, hi)
-            whisker_high.setPen(pg.mkPen(_ACCENT, width=1.5))
-            self._plot_widget.addItem(whisker_high)
-            self._chart_items.append(whisker_high)
-
-            median = QGraphicsLineItem(i - 0.25, med, i + 0.25, med)
-            median.setPen(pg.mkPen("#1a1a1a", width=2))
-            self._plot_widget.addItem(median)
-            self._chart_items.append(median)
-
-        if ticks:
-            self._plot_widget.getAxis("bottom").setTicks([ticks])
-            self._plot_widget.setLabel("bottom", "Column")
-            self._plot_widget.setLabel("left", "Value")
-
-    def _render_heatmap(self) -> None:
+    def _render_heatmap(self, ax) -> None:
         if self._df is None or self._df.is_empty():
             return
-        x_col = self._node_params.get("x_column", "")
-        y_col = self._node_params.get("y_column", "")
-        val_col = self._node_params.get("value_column", "")
-        if x_col and y_col and val_col:
-            if (
-                x_col not in self._df.columns
-                or y_col not in self._df.columns
-                or val_col not in self._df.columns
-            ):
-                return
-            numeric = [x_col, val_col]
-        else:
-            numeric = [
-                c
-                for c in self._df.columns
-                if self._df[c].dtype in (pl.Float32, pl.Float64, pl.Int32, pl.Int64)
-            ]
-            if len(numeric) < 2:
-                return
-            x_col, y_col = numeric[0], numeric[1]
-        data = (
-            self._df[numeric].to_numpy() if len(numeric) <= 3 else self._df[numeric[:3]].to_numpy()
-        )
-        img = pg.ImageItem(data.T)
-        self._plot_widget.addItem(img)
-        self._chart_items.append(img)
-        self._plot_widget.setLabel("bottom", x_col)
-        self._plot_widget.setLabel("left", y_col)
+        numeric_types = (pl.Int32, pl.Int64, pl.Float32, pl.Float64)
+        numeric_cols = [c for c in self._df.columns if self._df[c].dtype in numeric_types]
+        
+        if len(numeric_cols) < 2:
+            ax.text(0.5, 0.5, "Need at least 2 numeric columns for heatmap", 
+                   ha='center', va='center', transform=ax.transAxes)
+            return
+        
+        data_matrix = []
+        for col in numeric_cols:
+            data_matrix.append(self._to_numeric(self._df[col].to_list()))
+        
+        corr_matrix = np.corrcoef(data_matrix)
+        im = ax.imshow(corr_matrix, cmap='RdYlBu_r', aspect='auto', vmin=-1, vmax=1)
+        ax.set_xticks(range(len(numeric_cols)))
+        ax.set_yticks(range(len(numeric_cols)))
+        ax.set_xticklabels(numeric_cols, rotation=45, ha='right')
+        ax.set_yticklabels(numeric_cols)
+        self._figure.colorbar(im, ax=ax)
 
     def _export_png_handler(self) -> None:
-        path, _ = QFileDialog.getSaveFileName(self, "Export PNG", "", "PNG (*.png)")
+        path, _ = QFileDialog.getSaveFileName(self, "Export PNG", "", "PNG Files (*.png)")
         if path:
-            exporter = exporters.ImageExporter(self._plot_widget.plotItem)
-            exporter.export(path)
+            self._figure.savefig(path, dpi=300, bbox_inches='tight')
 
     def _export_svg_handler(self) -> None:
-        path, _ = QFileDialog.getSaveFileName(self, "Export SVG", "", "SVG (*.svg)")
+        path, _ = QFileDialog.getSaveFileName(self, "Export SVG", "", "SVG Files (*.svg)")
         if path:
-            exporter = exporters.SVGExporter(self._plot_widget.plotItem)
-            exporter.export(path)
+            self._figure.savefig(path, format='svg', bbox_inches='tight')
