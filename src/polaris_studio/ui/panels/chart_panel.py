@@ -69,7 +69,7 @@ class ChartPanel(QWidget):
 
         layout.addWidget(toolbar)
 
-        self._figure = Figure(figsize=(8, 6), facecolor='#ffffff')
+        self._figure = Figure(figsize=(8, 6), facecolor="#ffffff")
         self._canvas = FigureCanvasQTAgg(self._figure)
         self._canvas.setStyleSheet("border: none;")
         layout.addWidget(self._canvas, 1)
@@ -126,7 +126,7 @@ class ChartPanel(QWidget):
 
         self._figure.clear()
         ax = self._figure.add_subplot(111)
-        
+
         try:
             if self._chart_type == "bar":
                 self._render_bar(ax)
@@ -140,12 +140,19 @@ class ChartPanel(QWidget):
                 self._render_box(ax)
             elif self._chart_type == "heatmap":
                 self._render_heatmap(ax)
-            
+
             self._figure.tight_layout()
             self._canvas.draw()
         except Exception as exc:
-            ax.text(0.5, 0.5, f"Chart error: {exc}", ha='center', va='center', 
-                   transform=ax.transAxes, color='#f38ba8')
+            ax.text(
+                0.5,
+                0.5,
+                f"Chart error: {exc}",
+                ha="center",
+                va="center",
+                transform=ax.transAxes,
+                color="#f38ba8",
+            )
             self._canvas.draw()
 
     def _pick_xy(self) -> tuple:
@@ -185,11 +192,11 @@ class ChartPanel(QWidget):
         x_col, y_col, y_multi = self._pick_xy()
         if not y_multi:
             y_multi = [y_col] if y_col else self._df.columns[1:2]
-        
+
         x_labels = [str(v) for v in self._df[x_col].to_list()]
         x_positions = np.arange(len(x_labels))
         bar_width = 0.7 / max(len(y_multi), 1)
-        
+
         for i, col in enumerate(y_multi):
             y_vals = self._to_numeric(self._df[col].to_list())
             if not y_vals:
@@ -197,9 +204,9 @@ class ChartPanel(QWidget):
             color = _PALETTE_HEX[i % len(_PALETTE_HEX)]
             offset = (i - (len(y_multi) - 1) / 2) * bar_width
             ax.bar(x_positions + offset, y_vals, bar_width, label=col, color=color)
-        
+
         ax.set_xticks(x_positions)
-        ax.set_xticklabels(x_labels, rotation=45, ha='right')
+        ax.set_xticklabels(x_labels, rotation=45, ha="right")
         ax.set_xlabel(x_col)
         ax.set_ylabel(", ".join(y_multi))
         if len(y_multi) > 1:
@@ -210,15 +217,19 @@ class ChartPanel(QWidget):
             return
         _, _, y_multi = self._pick_xy()
         x_col = self._node_params.get("x_column", "") or self._df.columns[0]
-        x_vals = self._to_numeric(self._df[x_col].to_list()) if x_col in self._df.columns else list(range(len(self._df)))
-        
+        x_vals = (
+            self._to_numeric(self._df[x_col].to_list())
+            if x_col in self._df.columns
+            else list(range(len(self._df)))
+        )
+
         for i, col in enumerate(y_multi):
             y_vals = self._to_numeric(self._df[col].to_list())
             if not y_vals:
                 continue
             color = _PALETTE_HEX[i % len(_PALETTE_HEX)]
             ax.plot(x_vals, y_vals, label=col, color=color, linewidth=2)
-        
+
         ax.set_xlabel(x_col)
         ax.set_ylabel("Value")
         if len(y_multi) > 1:
@@ -230,12 +241,12 @@ class ChartPanel(QWidget):
         x_col, y_col, _ = self._pick_xy()
         if not y_col:
             y_col = self._df.columns[1] if len(self._df.columns) > 1 else self._df.columns[0]
-        
+
         x_vals = self._to_numeric(self._df[x_col].to_list())
         y_vals = self._to_numeric(self._df[y_col].to_list())
         if not x_vals or not y_vals:
             return
-        
+
         color_col = self._node_params.get("color_column", "")
         if color_col and color_col in self._df.columns:
             c_vals = self._df[color_col].to_list()
@@ -245,7 +256,7 @@ class ChartPanel(QWidget):
             ax.scatter(x_vals, y_vals, c=colors, s=80, alpha=0.7)
         else:
             ax.scatter(x_vals, y_vals, color=_PALETTE_HEX[0], s=80, alpha=0.7)
-        
+
         ax.set_xlabel(x_col)
         ax.set_ylabel(y_col)
 
@@ -256,8 +267,8 @@ class ChartPanel(QWidget):
         bins = int(self._node_params.get("bins", 20))
         data = self._df[col].drop_nulls().to_list()
         data = self._to_numeric(data)
-        
-        ax.hist(data, bins=bins, color=_PALETTE_HEX[0], edgecolor='white', alpha=0.8)
+
+        ax.hist(data, bins=bins, color=_PALETTE_HEX[0], edgecolor="white", alpha=0.8)
         ax.set_xlabel(col)
         ax.set_ylabel("Frequency")
 
@@ -270,7 +281,7 @@ class ChartPanel(QWidget):
             cols_param = [c for c in self._df.columns if self._df[c].dtype in numeric_types][:5]
         if not cols_param:
             cols_param = self._df.columns[:5]
-        
+
         data_to_plot = []
         labels = []
         for col in cols_param:
@@ -280,44 +291,50 @@ class ChartPanel(QWidget):
             if vals:
                 data_to_plot.append(vals)
                 labels.append(col)
-        
+
         if data_to_plot:
             bp = ax.boxplot(data_to_plot, labels=labels, patch_artist=True)
-            for patch, color in zip(bp['boxes'], _PALETTE_HEX):
+            for patch, color in zip(bp["boxes"], _PALETTE_HEX):
                 patch.set_facecolor(color)
                 patch.set_alpha(0.7)
             ax.set_ylabel("Value")
-            ax.tick_params(axis='x', rotation=45)
+            ax.tick_params(axis="x", rotation=45)
 
     def _render_heatmap(self, ax) -> None:
         if self._df is None or self._df.is_empty():
             return
         numeric_types = (pl.Int32, pl.Int64, pl.Float32, pl.Float64)
         numeric_cols = [c for c in self._df.columns if self._df[c].dtype in numeric_types]
-        
+
         if len(numeric_cols) < 2:
-            ax.text(0.5, 0.5, "Need at least 2 numeric columns for heatmap", 
-                   ha='center', va='center', transform=ax.transAxes)
+            ax.text(
+                0.5,
+                0.5,
+                "Need at least 2 numeric columns for heatmap",
+                ha="center",
+                va="center",
+                transform=ax.transAxes,
+            )
             return
-        
+
         data_matrix = []
         for col in numeric_cols:
             data_matrix.append(self._to_numeric(self._df[col].to_list()))
-        
+
         corr_matrix = np.corrcoef(data_matrix)
-        im = ax.imshow(corr_matrix, cmap='RdYlBu_r', aspect='auto', vmin=-1, vmax=1)
+        im = ax.imshow(corr_matrix, cmap="RdYlBu_r", aspect="auto", vmin=-1, vmax=1)
         ax.set_xticks(range(len(numeric_cols)))
         ax.set_yticks(range(len(numeric_cols)))
-        ax.set_xticklabels(numeric_cols, rotation=45, ha='right')
+        ax.set_xticklabels(numeric_cols, rotation=45, ha="right")
         ax.set_yticklabels(numeric_cols)
         self._figure.colorbar(im, ax=ax)
 
     def _export_png_handler(self) -> None:
         path, _ = QFileDialog.getSaveFileName(self, "Export PNG", "", "PNG Files (*.png)")
         if path:
-            self._figure.savefig(path, dpi=300, bbox_inches='tight')
+            self._figure.savefig(path, dpi=300, bbox_inches="tight")
 
     def _export_svg_handler(self) -> None:
         path, _ = QFileDialog.getSaveFileName(self, "Export SVG", "", "SVG Files (*.svg)")
         if path:
-            self._figure.savefig(path, format='svg', bbox_inches='tight')
+            self._figure.savefig(path, format="svg", bbox_inches="tight")

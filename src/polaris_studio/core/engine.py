@@ -137,6 +137,10 @@ class Engine:
             "histogram": self._exec_histogram,
             "box_chart": self._exec_box_chart,
             "heatmap": self._exec_heatmap,
+            "sql_query": self._exec_sql_query,
+            "sqlite_reader": self._exec_sqlite_reader,
+            "duckdb_reader": self._exec_duckdb_reader,
+            "postgres_reader": self._exec_postgres_reader,
             "table_output": self._exec_noop,
             "export_csv": self._exec_export_csv,
             "export_parquet": self._exec_export_parquet,
@@ -603,6 +607,67 @@ class Engine:
 
         XlsxHandler.write(df, path, sheet_name=sheet_name)
         return df
+
+    def _exec_sql_query(self, graph: WorkflowGraph, node: Node) -> pl.DataFrame:
+        sql = node.params.get("sql", "")
+        table_name = node.params.get("table_name", "data")
+        if not sql:
+            raise ExecutionError("SQL query is empty")
+        try:
+            ctx = pl.SQLContext()
+            has_input = False
+            for e in graph.get_edges():
+                if e.target_id == node.node_id:
+                    src = graph.get_node(e.source_id)
+                    if src:
+                        df = self._cache.get(src.node_id)
+                        if df is not None:
+                            ctx.register(table_name, df)
+                            has_input = True
+                            break
+            if not has_input and table_name.upper() in sql.upper():
+                ctx.register(table_name, pl.DataFrame())
+            return ctx.execute(sql).collect()
+        except ExecutionError:
+            raise
+        except Exception as e:
+            raise ExecutionError(f"SQL query failed: {e}") from e
+
+    def _exec_sqlite_reader(self, graph: WorkflowGraph, node: Node) -> pl.DataFrame:
+        path = node.params.get("file_path", "")
+        query = node.params.get("query", "")
+        if not path or not query:
+            raise ExecutionError("SQLite Reader: file_path and query are required")
+        try:
+            return pl.read_database_uri(query, f"sqlite:///{path}")
+        except Exception as e:
+            raise ExecutionError(f"SQLite query failed: {e}") from e
+
+    def _exec_duckdb_reader(self, graph: WorkflowGraph, node: Node) -> pl.DataFrame:
+        query = node.params.get("query", "")
+        if not query:
+            raise ExecutionError("DuckDB Reader: query is required")
+        try:
+            import duckdb
+
+            conn = duckdb.connect(read_only=node.params.get("read_only", False))
+            result = conn.execute(query).pl()
+            conn.close()
+            return result
+        except ExecutionError:
+            raise
+        except Exception as e:
+            raise ExecutionError(f"DuckDB query failed: {e}") from e
+
+    def _exec_postgres_reader(self, graph: WorkflowGraph, node: Node) -> pl.DataFrame:
+        conn_str = node.params.get("connection_string", "")
+        query = node.params.get("query", "")
+        if not conn_str or not query:
+            raise ExecutionError("PostgreSQL Reader: connection_string and query are required")
+        try:
+            return pl.read_database_uri(query, conn_str)
+        except Exception as e:
+            raise ExecutionError(f"PostgreSQL query failed: {e}") from e
 
     def _exec_noop(self, graph: WorkflowGraph, node: Node) -> pl.DataFrame:
         try:

@@ -256,16 +256,24 @@ class PolarisMainWindow(QMainWindow):
         file_menu.addSeparator()
 
         import_csv = QAction("Import CSV...", self)
+        import_csv.setShortcut(QKeySequence("Ctrl+Shift+C"))
         import_csv.triggered.connect(partial(self._import_file, "csv"))
         file_menu.addAction(import_csv)
 
         import_xlsx = QAction("Import XLSX...", self)
+        import_xlsx.setShortcut(QKeySequence("Ctrl+Shift+X"))
         import_xlsx.triggered.connect(partial(self._import_file, "xlsx"))
         file_menu.addAction(import_xlsx)
 
         import_parquet = QAction("Import Parquet...", self)
+        import_parquet.setShortcut(QKeySequence("Ctrl+Shift+P"))
         import_parquet.triggered.connect(partial(self._import_file, "parquet"))
         file_menu.addAction(import_parquet)
+
+        import_json = QAction("Import JSON...", self)
+        import_json.setShortcut(QKeySequence("Ctrl+Shift+J"))
+        import_json.triggered.connect(partial(self._import_file, "json"))
+        file_menu.addAction(import_json)
 
         file_menu.addSeparator()
 
@@ -416,6 +424,28 @@ class PolarisMainWindow(QMainWindow):
         self._wordmark.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
         toolbar.addWidget(self._wordmark)
         self._toolbar_logo = logo
+
+        self._version_label = QLabel("1.0.3")
+        version_font = font_instrument_serif(14)
+        version_font.setStyleName("Regular")
+        self._version_label.setFont(version_font)
+        self._version_label.setStyleSheet(f"""
+            QLabel {{
+                color: {PALETTE.text_primary};
+                background-color: {PALETTE.bg_node};
+                border: 1px solid {PALETTE.border_strong};
+                border-radius: 7px;
+                padding: 2px 10px;
+                margin: 0 14px 0 4px;
+                font-family: 'Instrument Serif';
+                font-size: 14px;
+                letter-spacing: 1.2px;
+            }}
+        """)
+        self._version_label.setAlignment(
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft
+        )
+        toolbar.addWidget(self._version_label)
 
         sep_label = QLabel("|")
         sep_label.setStyleSheet(f"color: {PALETTE.border_strong}; padding: 0 4px;")
@@ -657,6 +687,15 @@ class PolarisMainWindow(QMainWindow):
         self._ai_toggle_shortcut = QShortcut(QKeySequence("Ctrl+Shift+A"), self)
         self._ai_toggle_shortcut.activated.connect(partial(self._toggle_drawer, "ai"))
 
+        self._import_csv_shortcut = QShortcut(QKeySequence("Ctrl+Shift+C"), self)
+        self._import_csv_shortcut.activated.connect(partial(self._import_file, "csv"))
+        self._import_xlsx_shortcut = QShortcut(QKeySequence("Ctrl+Shift+X"), self)
+        self._import_xlsx_shortcut.activated.connect(partial(self._import_file, "xlsx"))
+        self._import_parquet_shortcut = QShortcut(QKeySequence("Ctrl+Shift+P"), self)
+        self._import_parquet_shortcut.activated.connect(partial(self._import_file, "parquet"))
+        self._import_json_shortcut = QShortcut(QKeySequence("Ctrl+Shift+J"), self)
+        self._import_json_shortcut.activated.connect(partial(self._import_file, "json"))
+
     def _setup_command_palette(self) -> None:
         commands: List[Command] = []
 
@@ -697,6 +736,34 @@ class PolarisMainWindow(QMainWindow):
         add_cmd("profile", "Profile Selected Node", "", "Data", self._profile_selected)
         add_cmd(
             "toggle_ai", "Open AI Panel", "Ctrl+Shift+A", "AI", lambda: self._toggle_drawer("ai")
+        )
+        add_cmd(
+            "import_csv",
+            "Import CSV...",
+            "Ctrl+Shift+C",
+            "Import",
+            partial(self._import_file, "csv"),
+        )
+        add_cmd(
+            "import_xlsx",
+            "Import XLSX...",
+            "Ctrl+Shift+X",
+            "Import",
+            partial(self._import_file, "xlsx"),
+        )
+        add_cmd(
+            "import_parquet",
+            "Import Parquet...",
+            "Ctrl+Shift+P",
+            "Import",
+            partial(self._import_file, "parquet"),
+        )
+        add_cmd(
+            "import_json",
+            "Import JSON...",
+            "Ctrl+Shift+J",
+            "Import",
+            partial(self._import_file, "json"),
         )
         add_cmd("export_csv", "Export as CSV...", "", "Export", lambda: self._export_as("csv"))
         add_cmd("export_xlsx", "Export as XLSX...", "", "Export", lambda: self._export_as("xlsx"))
@@ -818,6 +885,7 @@ class PolarisMainWindow(QMainWindow):
             "csv": "CSV Files (*.csv)",
             "xlsx": "Excel Files (*.xlsx)",
             "parquet": "Parquet Files (*.parquet)",
+            "json": "JSON Files (*.json)",
         }
         path, _ = QFileDialog.getOpenFileName(
             self, f"Import {file_type.upper()}", "", filter_map.get(file_type, "All Files (*)")
@@ -1348,6 +1416,30 @@ class PolarisMainWindow(QMainWindow):
                     self._status_bar.set_status(f"Inserted row below {row + 1}")
             except ValueError:
                 pass
+            return
+
+        if action == "ai_clean":
+            try:
+                df = self._grid_model.get_dataframe()
+                col = data
+                dtype = str(df[col].dtype) if col in df.columns else "unknown"
+                null_count = df[col].null_count() if col in df.columns else 0
+                sample_vals = (
+                    ", ".join(str(v) for v in df[col].drop_nulls().unique().to_list()[:5])
+                    if col in df.columns
+                    else ""
+                )
+                prompt = (
+                    f"Suggest transformations to clean the column '{col}' "
+                    f"(type: {dtype}, nulls: {null_count}, sample values: [{sample_vals}]). "
+                    f"Propose filter, fill_null, cast_column, or string_ops nodes."
+                )
+                self._ai_panel_dock.setVisible(True)
+                self._ai_panel_dock.raise_()
+                self._ai_panel._input.setText(prompt)
+                self._ai_panel._send_message()
+            except Exception as exc:
+                self._status_bar.set_status(f"AI clean unavailable: {exc}")
             return
 
         if action == "freeze":

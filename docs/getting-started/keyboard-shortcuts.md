@@ -9,13 +9,17 @@ Polaris Studio is designed to be keyboard-first. Every action is reachable via s
 ## File operations
 
 | Shortcut | Action |
-|---|---|
+|---|---|---|
 | `Ctrl+N` | New pipeline (in a new tab) |
 | `Ctrl+O` | Open `.polaris` file |
 | `Ctrl+S` | Save current pipeline |
 | `Ctrl+Shift+S` | Save As |
 | `Ctrl+W` | Close current tab |
 | `Ctrl+Q` | Quit Polaris |
+| `Ctrl+Shift+C` | Import CSV |
+| `Ctrl+Shift+X` | Import Excel |
+| `Ctrl+Shift+P` | Import Parquet |
+| `Ctrl+Shift+J` | Import JSON |
 
 ## History
 

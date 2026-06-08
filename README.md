@@ -10,13 +10,14 @@ Your data stays on your computer. There are no accounts, no telemetry, and no re
 
 ## What it can do
 
-- Load CSV, Excel, Parquet, and JSON files. Paste from the clipboard.
-- Transform data with visual nodes: filter, sort, rename, cast, fill, dedupe, parse dates, sample.
+- Load CSV, Excel, Parquet, JSON, SQLite, DuckDB, and PostgreSQL files. Paste from the clipboard.
+- Transform data with visual nodes: filter, sort, rename, cast, fill, dedupe, parse dates, sample, and SQL queries.
 - Reshape with pivot, unpivot, group-by, and rolling windows.
 - Join tables with inner, left, right, full, and anti joins.
 - Make bar, line, scatter, histogram, box, and heatmap charts.
 - Export the result back to CSV, Excel, Parquet, or JSON.
 - Edit results in a live spreadsheet with sorting, frozen rows, and column statistics.
+- Right-click any column and ask the AI to suggest cleaning transformations.
 - Ask the AI to build or change the pipeline, then review each change before it runs.
 - Save your work as a `.polaris` file and open it again later in the same state.
 
@@ -118,7 +119,6 @@ polaris_studio/
 │   ├── ui/             # PySide6 widgets, panels, dialogs, graph view
 │   ├── main.py         # CLI entry point
 │   └── __main__.py     # GUI entry point
-├── assets/theme.qss    # Global stylesheet
 ├── fonts/              # Bundled Inter, Outfit, Instrument Serif, JetBrains Mono
 ├── tests/              # pytest tests
 └── docs/               # The full documentation

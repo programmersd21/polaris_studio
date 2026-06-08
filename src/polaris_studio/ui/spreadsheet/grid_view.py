@@ -151,6 +151,13 @@ class SpreadsheetGrid(QTableView):
 
         menu.addSeparator()
 
+        ai_act = QAction("AI: Clean Column", self)
+        ai_act.setToolTip("Ask AI to suggest transformations for this column")
+        ai_act.triggered.connect(partial(self.column_action_requested.emit, "ai_clean", col_name))
+        menu.addAction(ai_act)
+
+        menu.addSeparator()
+
         stats_act = QAction("Column Statistics...", self)
         stats_act.triggered.connect(partial(self.column_action_requested.emit, "stats", col_name))
         menu.addAction(stats_act)

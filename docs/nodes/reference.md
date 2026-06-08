@@ -135,6 +135,75 @@ Load data from an Excel (`.xlsx`) workbook.
 
 ---
 
+### SQLite Reader
+
+Load data by running a SQL query against a SQLite database file.
+
+**When to use:** You have a SQLite database (`.db`, `.sqlite`) and want to query tables directly into a DataFrame.
+
+**Ports**
+
+| Port | Direction | Type |
+|---|---|---|
+| `data_out` | Output | A Polars DataFrame from the query result |
+
+**Parameters**
+
+| Name | Label | Type | Required | Default | Description |
+|---|---|---|---|---|---|
+| `file_path` | Database File | `filepath` | Yes | -- | Path to the SQLite database file |
+| `query` | Query | `string` | Yes | -- | SQL query to execute (e.g. `SELECT * FROM orders`) |
+
+**Example:** Point `file_path` to `inventory.db` and set `query` to `SELECT * FROM products WHERE price > 10`.
+
+---
+
+### DuckDB Reader
+
+Load data using DuckDB -- query CSV, Parquet, JSON files directly, or run DuckDB SQL.
+
+**When to use:** You want DuckDB's powerful multi-file querying (query CSV files as if they were tables, or use DuckDB-specific SQL features).
+
+**Ports**
+
+| Port | Direction | Type |
+|---|---|---|
+| `data_out` | Output | A Polars DataFrame from the query result |
+
+**Parameters**
+
+| Name | Label | Type | Required | Default | Description |
+|---|---|---|---|---|---|
+| `query` | Query | `string` | Yes | -- | DuckDB SQL query (e.g. `SELECT * FROM 'data.csv'`) |
+| `read_only` | Read Only | `bool` | No | `true` | Open DuckDB in read-only mode |
+
+**Example:** Set `query` to `SELECT region, SUM(amount) FROM 'sales.parquet' GROUP BY region` to aggregate a Parquet file without any import step.
+
+---
+
+### PostgreSQL Reader
+
+Load data by running a SQL query against a PostgreSQL database.
+
+**When to use:** You need to pull data from a remote PostgreSQL server for analysis.
+
+**Ports**
+
+| Port | Direction | Type |
+|---|---|---|
+| `data_out` | Output | A Polars DataFrame from the query result |
+
+**Parameters**
+
+| Name | Label | Type | Required | Default | Description |
+|---|---|---|---|---|---|
+| `connection_string` | Connection String | `string` | Yes | -- | PostgreSQL connection URI (e.g. `postgresql://user:password@localhost:5432/mydb`) |
+| `query` | Query | `string` | Yes | -- | SQL query to execute |
+
+**Example:** Connect to a production database with `connection_string` set to `postgresql://analyst:secret@db.example.com:5432/sales` and query `SELECT * FROM monthly_revenue`.
+
+---
+
 ### Clipboard Paste
 
 Quickly load data that you copied from another application.
@@ -528,6 +597,30 @@ Expand list or struct columns so that each element becomes its own row.
 | `column` | Column | `column_single` | Yes | -- | The list or struct column to explode |
 
 **Example:** If a column `"items"` contains lists, after explosion each list element gets its own row while other column values are duplicated.
+
+---
+
+### SQL Query
+
+Run a SQL query against the input DataFrame using Polars built-in SQL context.
+
+**When to use:** You are comfortable with SQL and want to filter, join, aggregate, or transform data using familiar syntax instead of the visual node graph.
+
+**Ports**
+
+| Port | Direction | Type |
+|---|---|---|
+| `data_in` | Input | A DataFrame (optional) |
+| `data_out` | Output | The result of the SQL query |
+
+**Parameters**
+
+| Name | Label | Type | Required | Default | Description |
+|---|---|---|---|---|---|
+| `sql` | SQL Query | `string` | Yes | -- | The SQL query to execute. Reference the input table using the name set in `table_name`. |
+| `table_name` | Table Name | `string` | No | `data` | The name to register the input DataFrame as in the SQL context. |
+
+**Example:** If the input is a DataFrame with columns `name` and `salary`, set `sql` to `SELECT name, salary * 1.1 AS raised FROM data WHERE salary > 50000`. The node will execute this query using Polars SQLContext.
 
 ---
 
